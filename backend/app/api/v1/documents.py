@@ -1,3 +1,4 @@
+# backend/app/api/v1/documents.py
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
@@ -6,21 +7,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db_session
 from app.core.upload import compute_sha256, save_vault_file, validate_upload
+from app.core.redis_client import delete_keys_by_pattern
 from app.models.case import Case
 from app.models.case_document import CaseDocument
 from app.models.document import Document
 from app.models.user import User
 from app.services.extraction import extract_document_text
 from app.services.chunking import ingest_document_chunks
-
-
 from app.schemas.document import (
     DocumentDetailResponse,
     DocumentListResponse,
     DocumentResponse,
     DocumentUpdateRequest,
 )
-
 
 documents_router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -104,7 +103,6 @@ async def upload_document(
         else (file.filename or "Untitled Document")
     )
 
-    # Extract text from the saved file
     extracted_text = None
     processing_status = "uploaded"
     try:
@@ -126,8 +124,6 @@ async def upload_document(
         processing_status=processing_status,
     )
 
-
-
     session.add(new_doc)
     await session.flush()
 
@@ -140,14 +136,20 @@ async def upload_document(
         session.add(case_doc)
 
     await session.commit()
+
     if extracted_text:
         try:
             await ingest_document_chunks(new_doc.id, session)
         except Exception:
-            pass  
+            pass
+
+    # Invalidate cached RAG queries for this case
+    if case_id is not None:
+        flushed = delete_keys_by_pattern(f"rag:case:{case_id}:*")
+        if flushed > 0:
+            print(f"[Redis Cache Invalidation] Flushed {flushed} cached RAG entries for Case {case_id}")
 
     await session.refresh(new_doc)
-
     return new_doc
 
 
@@ -157,25 +159,10 @@ async def upload_document(
     summary="List all documents in the user's vault",
 )
 async def list_documents(
-    page: int = Query(
-        default=1,
-        ge=1,
-        description="Page number (1-indexed)",
-    ),
-    page_size: int = Query(
-        default=10,
-        ge=1,
-        le=100,
-        description="Items per page",
-    ),
-    document_type: str | None = Query(
-        default=None,
-        description="Filter by document type",
-    ),
-    search: str | None = Query(
-        default=None,
-        description="Search across title and file name",
-    ),
+    page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
+    document_type: str | None = Query(default=None, description="Filter by document type"),
+    search: str | None = Query(default=None, description="Search across title and file name"),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> DocumentListResponse:
@@ -198,7 +185,6 @@ async def list_documents(
     total = total_result.scalar_one()
 
     offset = (page - 1) * page_size
-
     items_query = (
         select(Document)
         .where(*filters)
@@ -271,7 +257,6 @@ async def update_document(
         )
 
     update_data = payload.model_dump(exclude_unset=True)
-
     for field_name, value in update_data.items():
         setattr(doc, field_name, value)
 
@@ -306,6 +291,11 @@ async def delete_document(
             detail="Document not found",
         )
 
+    # Find cases linked to this document to invalidate their cache
+    case_query = select(CaseDocument.case_id).where(CaseDocument.document_id == document_id)
+    case_res = await session.execute(case_query)
+    linked_case_ids = case_res.scalars().all()
+
     try:
         Path(doc.file_path).unlink(missing_ok=True)
     except OSError:
@@ -313,5 +303,8 @@ async def delete_document(
 
     await session.delete(doc)
     await session.commit()
+
+    for c_id in linked_case_ids:
+        delete_keys_by_pattern(f"rag:case:{c_id}:*")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
