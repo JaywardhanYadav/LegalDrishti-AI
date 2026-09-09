@@ -1,6 +1,8 @@
 import json
 from openai import OpenAI
 from tavily import TavilyClient
+import hashlib
+from app.core.redis_client import get_cache, set_cache
 
 from app.core.config import get_settings
 from app.schemas.research import (
@@ -97,15 +99,17 @@ def synthesize_precedents_with_llm(
 
 
     )
+
     user_prompt = (
-        "<evidentiary_brief>\n"
-        f"{context_text}\n"
-        "</evidentiary_brief>\n\n"
+        "<external_legal_records>\n"
+        f"{raw_context}\n"
+        "</external_legal_records>\n\n"
         "<user_legal_query>\n"
         f"{query}\n"
         "</user_legal_query>\n\n"
-        "Deliver your concise, citation-grounded legal summary in clean bullet points (under 180 words):"
+        "Extract the structured precedents and deliver your short, bulleted legal synthesis in JSON format:"
     )
+
 
     response = client.chat.completions.create(
         model=settings.openai_model or "gpt-4o-mini",
@@ -119,7 +123,14 @@ def synthesize_precedents_with_llm(
     content = response.choices[0].message.content or "{}"
     parsed = json.loads(content)
 
-    synthesis = parsed.get("synthesis", "No synthesis generated.")
+    synthesis_raw = parsed.get("synthesis", "No synthesis generated.")
+    if isinstance(synthesis_raw, dict):
+        synthesis = "\n\n".join(f"**{k.replace('_', ' ').title()}**:\n{v}" for k, v in synthesis_raw.items())
+    elif isinstance(synthesis_raw, list):
+        synthesis = "\n".join(f"- {item}" for item in synthesis_raw)
+    else:
+        synthesis = str(synthesis_raw)
+
     raw_precedents = parsed.get("precedents", [])
 
     precedents: list[PrecedentItem] = []
@@ -140,14 +151,26 @@ def synthesize_precedents_with_llm(
 
 
 def perform_legal_research(payload: LegalResearchRequest) -> LegalResearchResponse:
+    
+    cache_signature = f"{payload.query}:{payload.court_filter}:{payload.max_results}"
+    cache_key = f"tavily_research:{hashlib.sha256(cache_signature.encode()).hexdigest()}"
+
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        print(f"[Redis Cache HIT] Serving instant legal research from RAM for: '{payload.query[:40]}...'")
+        return LegalResearchResponse(**cached_data)
+
+    
+    print(f"[Redis Cache MISS] Calling Tavily API for: '{payload.query[:40]}...'")
     results = execute_tavily_legal_search(payload)
 
     if not results:
         return LegalResearchResponse(
             query=payload.query,
-            synthesis="No authoritative judicial precedents were retrieved from trusted legal sources matching this inquiry.",
+            synthesis="The retrieved legal databases do not contain judicial records matching this inquiry.",
             precedents=[],
             total_found=0,
+            remaining_credits=3,
         )
 
     synthesis, precedents = synthesize_precedents_with_llm(
@@ -155,9 +178,15 @@ def perform_legal_research(payload: LegalResearchRequest) -> LegalResearchRespon
         search_results=results,
     )
 
-    return LegalResearchResponse(
+    response = LegalResearchResponse(
         query=payload.query,
         synthesis=synthesis,
         precedents=precedents,
         total_found=len(precedents),
+        remaining_credits=3,
     )
+
+    
+    set_cache(cache_key, response.model_dump(), expire_seconds=86400)
+
+    return response

@@ -40,7 +40,8 @@ def test_tavily_legal_research():
         print(f"    Source:   {p.source_url}")
 
     print("\n" + "=" * 80)
-    print("SENIOR ADVOCATE RESEARCH MEMORANDUM & STRATEGY:")
+    print("LEGAL RESEARCH ANALYSIS & STRATEGY:")
+
     print("=" * 80)
     print(response.synthesis)
     print("=" * 80)
