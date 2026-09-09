@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.security_guard import validate_and_sanitize_query
 
 from app.api.dependencies import get_current_user, get_db_session
 from app.models.case import Case
@@ -226,6 +227,9 @@ async def ask_case_question(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> CaseQAResponse:
+
+    payload.query = validate_and_sanitize_query(payload.query)
+
     stmt = select(Case).where(Case.id == case_id, Case.user_id == current_user.id)
     result = await session.execute(stmt)
     case = result.scalar_one_or_none()

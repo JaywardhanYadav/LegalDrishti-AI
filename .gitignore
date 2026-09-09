@@ -37,6 +37,9 @@ vault/
 artifacts/
 temp/
 tmp/
+Artifact/
+artifacts/
+
 
 
 *.log
