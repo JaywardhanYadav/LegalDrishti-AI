@@ -22,6 +22,13 @@ class Document(Base):
         index=True,
         nullable=False,
     )
+
+    session_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("chat_sessions.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
     
     title: Mapped[str] = mapped_column(
         String(255),
@@ -85,6 +92,7 @@ class Document(Base):
     )
    
     user = relationship("User", foreign_keys=[user_id])
+    session = relationship("ChatSession", foreign_keys=[session_id])
     def __repr__(self) -> str:
         """
         Safe string representation for debugging.

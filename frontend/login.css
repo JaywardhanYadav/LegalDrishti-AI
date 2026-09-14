@@ -1,0 +1,548 @@
+:root {
+  --hero-bg: #0e1117;
+  --hero-card-bg: #f8fafc;
+  --text-dark: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-light: #e2e8f0;
+  --sso-bg: #f8fafc;
+  --sso-border: #e2e8f0;
+  --accent-gold: #d4af37;
+  --accent-gold-light: #fde68a;
+  --font-brand: 'Cinzel', 'Playfair Display', Georgia, serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Outfit', 'Inter', -apple-system, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--hero-card-bg);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ================= 2-COLUMN EQUAL 50/50 SPLIT LAYOUT ================= */
+.login-wrapper {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  min-height: 100vh;
+  width: 100vw;
+}
+
+/* ================= LEFT EXECUTIVE HERO (AUTHENTIC DEEP SPACE THEME) ================= */
+.left-hero-section {
+  background: 
+    radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 18% 85%, rgba(56, 189, 248, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 15% 15%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, #081022 0%, #030610 50%, #010307 100%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 48px;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Space Backdrop & Starfield */
+.space-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+
+.cosmic-constellation-art {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 960px;
+  height: 960px;
+  max-width: 90vw;
+  max-height: 90vh;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.08));
+}
+
+/* Twinkling Deep Space Pinpoint Stars */
+.twinkle-star {
+  animation: starPulse 4.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.star-1 { animation-delay: 0s; }
+.star-2 { animation-delay: 1.1s; }
+.star-3 { animation-delay: 2.3s; }
+.star-4 { animation-delay: 3.4s; }
+
+@keyframes starPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* JWST/Hubble 4-Point Diffraction Spike Sparkle Stars */
+.diffraction-star {
+  animation: diffractionPulse 5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes diffractionPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+
+/* Brand Masthead Container */
+.prestige-brand-container {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 480px;
+  gap: 28px;
+  padding: 24px 30px;
+  background: radial-gradient(ellipse 65% 60% at 50% 50%, rgba(6, 11, 23, 0.95) 0%, rgba(6, 11, 23, 0.7) 60%, transparent 100%);
+  border-radius: 40px;
+}
+
+.brand-crest-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Sculpted Scales of Justice Icon (Celestial Orbit Crest) */
+.sculpted-scales-wrap {
+  width: 76px;
+  height: 76px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.22) 0%, rgba(56, 189, 248, 0.08) 50%, rgba(13, 23, 46, 0.4) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.2), 0 16px 40px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.sculpted-scales-wrap:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.35), 0 20px 48px rgba(0, 0, 0, 0.7);
+}
+
+.scales-master-icon {
+  width: 40px;
+  height: 40px;
+  color: #ffffff;
+  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.4));
+}
+
+/* Stately Brand Typography with Ethereal Starlight Aura */
+.brand-text-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-main-title {
+  font-family: var(--font-brand);
+  font-size: 38px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.8px;
+  line-height: 1.15;
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+
+.brand-ai-gold {
+  font-family: var(--font-brand);
+  background: linear-gradient(135deg, #fef08a 0%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  margin-left: 2px;
+}
+
+.brand-prestige-tagline {
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+/* Distinction Bar */
+.chamber-distinction-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gold-pip {
+  width: 4px;
+  height: 4px;
+  background-color: var(--accent-gold);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-gold);
+}
+
+.distinction-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 1.6px;
+}
+
+/* ================= RIGHT WORKSPACE ================= */
+.right-card-section {
+  background-color: var(--hero-card-bg);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow: hidden;
+}
+
+.watermark-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.neural-legal-network {
+  position: absolute;
+  top: -50px;
+  right: -70px;
+  width: 700px;
+  height: 700px;
+}
+
+/* The Prestige White Floating Card */
+.prestige-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 26px;
+  padding: 44px 40px;
+  box-shadow: 
+    0 20px 50px -10px rgba(15, 23, 42, 0.08), 
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  animation: cardEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card Gold Accent Line */
+.card-gold-accent-line {
+  position: absolute;
+  top: 0;
+  left: 44px;
+  right: 44px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #d4af37, #38bdf8, transparent);
+  border-radius: 0 0 3px 3px;
+}
+
+.card-header-block {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.3px;
+  margin-bottom: 6px;
+}
+
+.card-subtitle {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+/* SSO Buttons Stack */
+.sso-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sso-pill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  background-color: var(--sso-bg);
+  border: 1px solid var(--sso-border);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sso-pill-btn:hover {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1.5px);
+}
+
+.sso-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Divider */
+.divider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0 20px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-light);
+}
+
+.divider-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Credentials Form */
+.credentials-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.pill-input-box {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 14px;
+  background-color: #ffffff;
+  transition: all 0.18s ease;
+}
+
+.pill-input-box:focus-within {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3.5px rgba(15, 23, 42, 0.06);
+}
+
+.field-left-icon {
+  width: 17px;
+  height: 17px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.field-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-dark);
+  background: transparent;
+}
+
+.field-input::placeholder {
+  color: #94a3b8;
+}
+
+.eye-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.eye-toggle:hover {
+  color: var(--text-dark);
+}
+
+.eye-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Forgot Password */
+.forgot-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -2px;
+}
+
+.forgot-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Primary Sign In Button */
+.sign-in-btn {
+  width: 100%;
+  height: 48px;
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 6px;
+}
+
+.sign-in-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.45);
+}
+
+.sign-in-btn:active {
+  transform: scale(0.99);
+}
+
+/* Footer Links */
+.card-bottom-links {
+  margin-top: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.signup-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.signup-link {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}
+
+.compliance-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.legal-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.legal-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.sep {
+  color: #cbd5e1;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 960px) {
+  .login-wrapper {
+    grid-template-columns: 1fr;
+  }
+  .left-hero-section {
+    display: none;
+  }
+}

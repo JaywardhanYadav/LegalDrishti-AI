@@ -16,12 +16,14 @@ from app.core.security import hash_password, verify_password
 
 from app.models.user import User
 
-from app.schemas.auth import(
-      TokenRefreshRequest,
-      TokenResponse,
-      UserLoginRequest,
-      UserRegisterRequest,
-      UserResponse
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    ChangePasswordResponse,
+    TokenRefreshRequest,
+    TokenResponse,
+    UserLoginRequest,
+    UserRegisterRequest,
+    UserResponse,
 )
 
 auth_router = APIRouter(prefix="/auth",tags=["Authentication"])
@@ -161,3 +163,33 @@ async def get_my_profile(
     current_user: User = Depends(get_current_user),
 ) -> User:
     return current_user
+
+
+@auth_router.post(
+    "/change-password",
+    response_model=ChangePasswordResponse,
+    summary="Change user password with current password verification",
+)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> ChangePasswordResponse:
+    """Securely update the user's password after verifying existing credentials."""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password entered is incorrect.",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from your current password.",
+        )
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    session.add(current_user)
+    await session.commit()
+
+    return ChangePasswordResponse(message="Password successfully updated.")

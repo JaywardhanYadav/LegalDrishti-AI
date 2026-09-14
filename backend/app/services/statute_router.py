@@ -48,6 +48,36 @@ def load_statute_catalog() -> dict:
     return _STATUTE_CATALOG
 
 
+# Explicit Statute Intent Matchers
+EXPLICIT_INTENT_MAP = [
+    {
+        "patterns": [r"\bbns\b", r"\bbharatiya nyaya\b", r"\bipc\b", r"\bindian penal code\b", r"\bpenal code\b"],
+        "pdf_name": "Bharatiya Nyaya Sanhita, 2023.pdf",
+        "category": "substantive",
+    },
+    {
+        "patterns": [r"\bbnss\b", r"\bbharatiya nagarik\b", r"\bcrpc\b", r"\bcriminal procedure\b", r"\banticipatory bail\b", r"\bbail\b", r"\bfir\b"],
+        "pdf_name": "THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023.pdf",
+        "category": "procedure",
+    },
+    {
+        "patterns": [r"\bbsa\b", r"\bbharatiya sakshya\b", r"\bevidence act\b", r"\belectronic evidence\b"],
+        "pdf_name": "THE BHARATIYA SAKSHYA ADHINIYAM,2023.pdf",
+        "category": "evidence",
+    },
+    {
+        "patterns": [r"\bni act\b", r"\bnegotiable instruments\b", r"\bcheque bounce\b", r"\bsection 138\b", r"\bsec 138\b"],
+        "pdf_name": "The Negotiable Instruments Act, 1881.PDF",
+        "category": "commercial",
+    },
+    {
+        "patterns": [r"\bconstitution\b", r"\barticle 21\b", r"\barticle 32\b", r"\barticle 226\b", r"\bfundamental rights\b"],
+        "pdf_name": "THE CONSTITUTION OF INDIA.pdf",
+        "category": "constitutional",
+    },
+]
+
+
 def route_query_to_statutes(query: str, max_statutes: int = 5) -> list[dict]:
     load_statute_catalog()
 
@@ -56,8 +86,25 @@ def route_query_to_statutes(query: str, max_statutes: int = 5) -> list[dict]:
 
     query_clean = query.lower()
 
-    words = re.findall(r"\b[a-z0-9][a-z0-9\-]*[a-z0-9]\b|\b[a-z0-9]\b", query_clean)
+    # 1. Check for specific explicit statute intents
+    explicit_matches = []
+    for item in EXPLICIT_INTENT_MAP:
+        for pat in item["patterns"]:
+            if re.search(pat, query_clean):
+                if item["pdf_name"] in _STATUTE_CATALOG:
+                    explicit_matches.append({
+                        "pdf_name": item["pdf_name"],
+                        "score": 100.0,
+                        "matched_keywords": [f"intent_{item['category']}"],
+                    })
+                break
 
+    if explicit_matches:
+        # If user explicitly asked for specific statutes (e.g. BNS only), route strictly to them
+        return explicit_matches[:max_statutes]
+
+    # 2. General keyword-based fallback routing
+    words = re.findall(r"\b[a-z0-9][a-z0-9\-]*[a-z0-9]\b|\b[a-z0-9]\b", query_clean)
     query_phrases = set(words)
 
     for i in range(len(words) - 1):

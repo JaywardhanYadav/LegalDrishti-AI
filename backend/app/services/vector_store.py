@@ -194,6 +194,50 @@ def hybrid_search_chunks(
         return results
 
 
+def delete_chunks_by_document(document_id: int) -> int:
+    """Permanently deletes all vector embeddings and chunks for a document in Weaviate."""
+    ensure_collection_exists()
+    try:
+        with get_weaviate_client() as client:
+            collection = client.collections.get(COLLECTION_NAME)
+            res = collection.data.delete_many(
+                where=Filter.by_property("document_id").equal(document_id)
+            )
+            return getattr(res, "matches", 0) or 0
+    except Exception as e:
+        print(f"[Weaviate Vector Deletion Warning] Failed to delete chunks for document {document_id}: {e}")
+        return 0
+
+
+def delete_chunks_by_case(case_id: int) -> int:
+    """Permanently deletes all vector embeddings and chunks for a case/vault in Weaviate."""
+    ensure_collection_exists()
+    try:
+        with get_weaviate_client() as client:
+            collection = client.collections.get(COLLECTION_NAME)
+            res = collection.data.delete_many(
+                where=Filter.by_property("case_id").equal(case_id)
+            )
+            return getattr(res, "matches", 0) or 0
+    except Exception as e:
+        print(f"[Weaviate Vector Deletion Warning] Failed to delete chunks for case {case_id}: {e}")
+        return 0
+
+
+def delete_all_chunks_by_user(user_id: int) -> int:
+    """Permanently deletes all vector embeddings and chunks for a user in Weaviate."""
+    ensure_collection_exists()
+    try:
+        with get_weaviate_client() as client:
+            collection = client.collections.get(COLLECTION_NAME)
+            res = collection.data.delete_many(
+                where=Filter.by_property("user_id").equal(user_id)
+            )
+            return getattr(res, "matches", 0) or 0
+    except Exception as e:
+        print(f"[Weaviate Vector Deletion Warning] Failed to delete chunks for user {user_id}: {e}")
+        return 0
+
 
 STATUTE_COLLECTION_NAME = "GlobalStatuteChunk"
 

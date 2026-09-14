@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from app.core.database import engine
-
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 
 
@@ -31,6 +32,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         environment = settings.app_env,
         api_version = "v1"
     )
+
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS session_id INTEGER REFERENCES chat_sessions(id) ON DELETE SET NULL;"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_documents_session_id ON documents (session_id);"))
+    except Exception as db_err:
+        logger.warning(f"Database schema auto-check notice: {db_err}")
 
     yield
 
@@ -73,3 +82,7 @@ async def health_check() -> dict[str,str]:
         "status" : "ok",
         "environment" : settings.app_env,
     }
+
+frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")

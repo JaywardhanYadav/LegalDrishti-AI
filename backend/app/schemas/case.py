@@ -102,6 +102,16 @@ class CaseUpdateRequest(BaseModel):
         description="Updated upcoming hearing date",
     )
 
+class CaseDocItem(BaseModel):
+    id: int
+    name: str
+    type: str | None = None
+    submitted: bool = True
+    status: str = "Submitted"
+    backendId: int | None = None
+    created_at: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
+
 class CaseResponse(BaseModel):
 
     id: int
@@ -117,6 +127,7 @@ class CaseResponse(BaseModel):
     hearing_date: date | None = None
     created_at: datetime
     updated_at: datetime
+    docs: list[CaseDocItem] = []
     model_config = ConfigDict(from_attributes=True)
 
 class CaseListResponse(BaseModel):

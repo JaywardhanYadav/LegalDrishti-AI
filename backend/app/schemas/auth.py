@@ -50,6 +50,7 @@ class UserResponse(BaseModel):
     full_name: str | None = None
     role: str
     is_active: bool
+    deep_search_credits: int = 3
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -80,3 +81,21 @@ class TokenRefreshRequest(BaseModel):
         min_length=1,
         description="Valid refresh token string",
     )
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(
+        ...,
+        min_length=1,
+        description="Current account password",
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password (minimum 8 characters)",
+    )
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str = "Password updated successfully"

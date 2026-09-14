@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register Account - LegalDrishti AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <div class="login-wrapper">
+    <!-- ================= LEFT EXECUTIVE HERO ================= -->
+    <div class="left-hero-section">
+      <!-- Cosmic Space Theme: Constellation & Celestial Orbit Backdrop -->
+      <div class="architectural-art-backdrop space-backdrop">
+        <!-- Authentic Deep Space Astrophotography Starfield & Cosmic Orbits -->
+        <svg class="cosmic-constellation-art" viewBox="0 0 1000 1000" fill="none">
+          <defs>
+            <filter id="gold-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+            <filter id="cyan-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+            <filter id="nebula-soft" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="40"/>
+            </filter>
+            <radialGradient id="celestial-core-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.08"/>
+              <stop offset="50%" stop-color="#d4af37" stop-opacity="0.03"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Deep Space Interstellar Gas & Nebula Clouds (Outer Perimeters Only) -->
+          <ellipse cx="200" cy="180" rx="180" ry="120" fill="rgba(56, 189, 248, 0.05)" filter="url(#nebula-soft)"/>
+          <ellipse cx="820" cy="220" rx="160" ry="130" fill="rgba(212, 175, 55, 0.04)" filter="url(#nebula-soft)"/>
+          <ellipse cx="800" cy="800" rx="190" ry="140" fill="rgba(139, 92, 246, 0.06)" filter="url(#nebula-soft)"/>
+          <ellipse cx="180" cy="820" rx="170" ry="120" fill="rgba(56, 189, 248, 0.04)" filter="url(#nebula-soft)"/>
+
+          <!-- Core Ambient Radial Glow -->
+          <circle cx="500" cy="500" r="460" fill="url(#celestial-core-glow)"/>
+
+          <!-- ================= DEEP SPACE OUTER PINPOINT STARFIELD (ZERO OVERLAP WITH TEXT/SYMBOL) ================= -->
+          <!-- Top Quadrant Outer Stars -->
+          <circle cx="500" cy="65" r="1.4" fill="#ffffff" class="twinkle-star star-1"/>
+          <circle cx="420" cy="90" r="0.9" fill="#93c5fd" class="twinkle-star star-2"/>
+          <circle cx="580" cy="85" r="1.0" fill="#fef08a" class="twinkle-star star-3"/>
+          <circle cx="340" cy="100" r="1.2" fill="#ffffff" class="twinkle-star star-4"/>
+          <circle cx="660" cy="95" r="0.9" fill="#93c5fd" class="twinkle-star star-1"/>
+
+          <!-- Top-Left Corner Deep Stars -->
+          <circle cx="160" cy="140" r="1.3" fill="#ffffff" class="twinkle-star star-2"/>
+          <circle cx="230" cy="110" r="0.9" fill="#38bdf8" class="twinkle-star star-3"/>
+          <circle cx="110" cy="210" r="1.1" fill="#ffffff" class="twinkle-star star-4"/>
+          <circle cx="200" cy="220" r="0.8" fill="#fef08a" class="twinkle-star star-1"/>
+
+          <!-- Top-Right Corner Deep Stars -->
+          <circle cx="840" cy="140" r="1.3" fill="#ffffff" class="twinkle-star star-3"/>
+          <circle cx="770" cy="105" r="0.9" fill="#fef08a" class="twinkle-star star-4"/>
+          <circle cx="890" cy="220" r="1.1" fill="#93c5fd" class="twinkle-star star-1"/>
+          <circle cx="800" cy="230" r="0.8" fill="#ffffff" class="twinkle-star star-2"/>
+
+          <!-- Left & Right Flank Outer Stars -->
+          <circle cx="70" cy="480" r="1.2" fill="#ffffff" class="twinkle-star star-3"/>
+          <circle cx="95" cy="360" r="0.9" fill="#93c5fd" class="twinkle-star star-4"/>
+          <circle cx="85" cy="620" r="1.0" fill="#ffffff" class="twinkle-star star-1"/>
+          <circle cx="930" cy="490" r="1.2" fill="#ffffff" class="twinkle-star star-2"/>
+          <circle cx="910" cy="370" r="0.8" fill="#fef08a" class="twinkle-star star-3"/>
+          <circle cx="915" cy="630" r="1.0" fill="#93c5fd" class="twinkle-star star-4"/>
+
+          <!-- Bottom-Left Deep Stars -->
+          <circle cx="140" cy="840" r="1.2" fill="#38bdf8" class="twinkle-star star-1"/>
+          <circle cx="220" cy="870" r="0.9" fill="#ffffff" class="twinkle-star star-2"/>
+          <circle cx="100" cy="740" r="1.0" fill="#ffffff" class="twinkle-star star-3"/>
+
+          <!-- Bottom-Right Deep Stars -->
+          <circle cx="860" cy="850" r="1.3" fill="#ffffff" class="twinkle-star star-4"/>
+          <circle cx="780" cy="880" r="0.9" fill="#fef08a" class="twinkle-star star-1"/>
+          <circle cx="900" cy="750" r="1.1" fill="#93c5fd" class="twinkle-star star-2"/>
+
+          <!-- Bottom Outer Flank Stars -->
+          <circle cx="500" cy="940" r="1.2" fill="#ffffff" class="twinkle-star star-3"/>
+          <circle cx="410" cy="920" r="0.8" fill="#fef08a" class="twinkle-star star-4"/>
+          <circle cx="590" cy="925" r="0.9" fill="#93c5fd" class="twinkle-star star-1"/>
+
+          <!-- Signature Hubble/JWST 4-Point Diffraction Spike Sparkle Stars -->
+          <g class="diffraction-star star-1" transform="translate(190, 150)">
+            <line x1="-10" y1="0" x2="10" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+            <line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+            <circle cx="0" cy="0" r="2.2" fill="#ffffff" filter="url(#cyan-glow)"/>
+          </g>
+
+          <g class="diffraction-star star-3" transform="translate(830, 160)">
+            <line x1="-11" y1="0" x2="11" y2="0" stroke="rgba(254,240,138,0.75)" stroke-width="1.2"/>
+            <line x1="0" y1="-11" x2="0" y2="11" stroke="rgba(254,240,138,0.75)" stroke-width="1.2"/>
+            <circle cx="0" cy="0" r="2.4" fill="#fef08a" filter="url(#gold-glow)"/>
+          </g>
+
+          <g class="diffraction-star star-2" transform="translate(810, 820)">
+            <line x1="-9" y1="0" x2="9" y2="0" stroke="rgba(56,189,248,0.75)" stroke-width="1.1"/>
+            <line x1="0" y1="-9" x2="0" y2="9" stroke="rgba(56,189,248,0.75)" stroke-width="1.1"/>
+            <circle cx="0" cy="0" r="2" fill="#38bdf8" filter="url(#cyan-glow)"/>
+          </g>
+
+          <!-- ================= EXPANDED CELESTIAL CIRCLES (100% CLEAR OF TEXT & SYMBOL) ================= -->
+          <!-- 1. Inner Orbital Ring (r=320: Encircles Text & Symbol with Wide Clearance) -->
+          <circle cx="500" cy="500" r="320" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1.2"/>
+          
+          <!-- Revolving Planets on Orbit 1 (55s Gentle Orbital Revolution) -->
+          <g class="revolving-orbit-1">
+            <animateTransform attributeName="transform" type="rotate" from="0 500 500" to="360 500 500" dur="55s" repeatCount="indefinite"/>
+            <!-- Starlight Cyan Planet & Pearl Moon Gliding on Orbit 1 -->
+            <circle cx="820" cy="500" r="3.4" fill="#38bdf8" filter="url(#cyan-glow)"/>
+            <circle cx="180" cy="500" r="2.6" fill="#ffffff"/>
+          </g>
+
+          <!-- 2. Mid Gold Orbital Ring (r=395: Fine Gold Accent Ring with Starlight Dash) -->
+          <circle cx="500" cy="500" r="395" stroke="rgba(212, 175, 55, 0.24)" stroke-width="1.4" stroke-dasharray="10 10"/>
+          
+          <!-- Revolving Planets on Orbit 2 (80s Gentle Orbital Revolution) -->
+          <g class="revolving-orbit-2">
+            <animateTransform attributeName="transform" type="rotate" from="45 500 500" to="405 500 500" dur="80s" repeatCount="indefinite"/>
+            <!-- Golden Sun-Planet & Amber Planet Gliding on Orbit 2 -->
+            <circle cx="500" cy="105" r="3.6" fill="#fef08a" filter="url(#gold-glow)"/>
+            <circle cx="500" cy="895" r="3.0" fill="#d4af37" filter="url(#gold-glow)"/>
+          </g>
+
+          <!-- 3. Wide Tilted Planetary Orbit (rx=475, ry=335 - Safe 335px Vertical Clearance from Center) -->
+          <ellipse cx="500" cy="500" rx="475" ry="335" stroke="rgba(255, 255, 255, 0.1)" stroke-width="1.4" transform="rotate(-18 500 500)"/>
+          <!-- Stationary Glowing Beacons on Tilted Orbit -->
+          <circle cx="880" cy="380" r="3.6" fill="#fef08a" filter="url(#gold-glow)" class="twinkle-star star-1"/>
+          <circle cx="120" cy="620" r="2.8" fill="#38bdf8" filter="url(#cyan-glow)" class="twinkle-star star-3"/>
+
+          <!-- 4. Grand Outer Celestial Horizon Ring (r=490) -->
+          <circle cx="500" cy="500" r="490" stroke="rgba(212, 175, 55, 0.14)" stroke-width="1"/>
+          
+          <!-- Revolving Outer Planets on Horizon Orbit 4 (120s Majestic Revolution) -->
+          <g class="revolving-orbit-4">
+            <animateTransform attributeName="transform" type="rotate" from="180 500 500" to="540 500 500" dur="120s" repeatCount="indefinite"/>
+            <circle cx="500" cy="10" r="3.0" fill="#93c5fd" filter="url(#cyan-glow)"/>
+            <circle cx="990" cy="500" r="2.4" fill="#ffffff"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Centered Prestige Brand Masthead -->
+      <div class="prestige-brand-container">
+        <div class="brand-crest-layout">
+          <!-- Sculpted Scales of Justice Emblem -->
+          <div class="sculpted-scales-wrap">
+            <svg class="scales-master-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <!-- Top Ring / Finial -->
+              <circle cx="12" cy="3" r="1.5" stroke-width="1.8"/>
+              <!-- Central Pillar / Mast -->
+              <line x1="12" y1="4.5" x2="12" y2="21" stroke-width="2" stroke-linecap="round"/>
+              <!-- Crossbeam Balance Bar -->
+              <path d="M4 8 C 8 6.5, 16 6.5, 20 8" stroke-width="2" stroke-linecap="round"/>
+              <!-- Left Pan Chains & Pan -->
+              <line x1="4" y1="8" x2="2.5" y2="15" stroke-width="1.5"/>
+              <line x1="4" y1="8" x2="5.5" y2="15" stroke-width="1.5"/>
+              <path d="M1.5 15 C 2.5 18, 5.5 18, 6.5 15 Z" stroke-width="1.8" fill="rgba(255,255,255,0.05)"/>
+              <!-- Right Pan Chains & Pan -->
+              <line x1="20" y1="8" x2="18.5" y2="15" stroke-width="1.5"/>
+              <line x1="20" y1="8" x2="21.5" y2="15" stroke-width="1.5"/>
+              <path d="M17.5 15 C 18.5 18, 21.5 18, 22.5 15 Z" stroke-width="1.8" fill="rgba(255,255,255,0.05)"/>
+              <!-- Stepped Base -->
+              <path d="M7 21 L17 21" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M9 19 L15 19" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- The Stately Typography -->
+          <div class="brand-text-block">
+            <h1 class="brand-main-title">
+              LegalDrishti <span class="brand-ai-gold">AI</span>
+            </h1>
+            <p class="brand-prestige-tagline">
+              Smarter Insights. Clearer Answers.
+            </p>
+          </div>
+        </div>
+
+        <!-- Subtle Chamber Distinction Line -->
+        <div class="chamber-distinction-bar">
+          <span class="gold-pip"></span>
+          <span class="distinction-label">YOUR AI ASSISTANT FOR UNDERSTANDING THE LAW</span>
+          <span class="gold-pip"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= RIGHT WORKSPACE ================= -->
+    <div class="right-card-section">
+      <!-- Abstract Legal Intelligence Neural Network in Background -->
+      <div class="watermark-backdrop">
+        <svg class="neural-legal-network" viewBox="0 0 600 600" fill="none">
+          <!-- Interconnected Precedent Knowledge Nodes -->
+          <circle cx="180" cy="140" r="5" fill="rgba(15, 23, 42, 0.08)"/>
+          <circle cx="340" cy="110" r="7" fill="rgba(15, 23, 42, 0.06)"/>
+          <circle cx="480" cy="170" r="6" fill="rgba(15, 23, 42, 0.08)"/>
+          <circle cx="520" cy="320" r="8" fill="rgba(15, 23, 42, 0.05)"/>
+          <circle cx="390" cy="420" r="6" fill="rgba(15, 23, 42, 0.07)"/>
+          <circle cx="220" cy="480" r="7" fill="rgba(15, 23, 42, 0.05)"/>
+          <circle cx="120" cy="340" r="5" fill="rgba(15, 23, 42, 0.08)"/>
+          <circle cx="280" cy="270" r="9" fill="rgba(212, 175, 55, 0.18)"/>
+
+          <!-- Network Interlink Strands -->
+          <g stroke="rgba(15, 23, 42, 0.04)" stroke-width="1.5">
+            <line x1="180" y1="140" x2="340" y2="110"/>
+            <line x1="340" y1="110" x2="480" y2="170"/>
+            <line x1="480" y1="170" x2="520" y2="320"/>
+            <line x1="520" y1="320" x2="390" y2="420"/>
+            <line x1="390" y1="420" x2="220" y2="480"/>
+            <line x1="220" y1="480" x2="120" y2="340"/>
+            <line x1="120" y1="340" x2="180" y2="140"/>
+            <line x1="280" y1="270" x2="180" y2="140"/>
+            <line x1="280" y1="270" x2="340" y2="110"/>
+            <line x1="280" y1="270" x2="480" y2="170"/>
+            <line x1="280" y1="270" x2="390" y2="420"/>
+            <line x1="280" y1="270" x2="120" y2="340"/>
+          </g>
+
+          <!-- Smooth Flowing Jurisprudence Radians -->
+          <path d="M50 180 Q 250 40 450 160 T 650 200" stroke="rgba(56, 189, 248, 0.08)" stroke-width="2"/>
+          <path d="M0 380 Q 200 480 400 360 T 600 440" stroke="rgba(212, 175, 55, 0.1)" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <!-- Floating Prestige Registration Card -->
+      <div class="prestige-card" style="max-width: 500px; padding: 36px 36px;">
+        <div class="card-gold-accent-line"></div>
+
+        <div class="card-header-block" style="margin-bottom: 20px;">
+          <h2 class="card-title" style="font-size: 26px;">Create an Account</h2>
+          <p class="card-subtitle">Sign up to access LegalDrishti AI</p>
+        </div>
+
+        <!-- Registration Form -->
+        <form id="signup-form" class="credentials-form" autocomplete="off">
+          <div class="form-row">
+            <label class="field-label" for="fullname-input">Full Name *</label>
+            <div class="pill-input-box">
+              <svg class="field-left-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <input 
+                type="text" 
+                id="fullname-input" 
+                class="field-input" 
+                placeholder="Enter your full name" 
+                required 
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="email-input">Email Address *</label>
+            <div class="pill-input-box">
+              <svg class="field-left-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <input 
+                type="email" 
+                id="email-input" 
+                class="field-input" 
+                placeholder="Enter your email address" 
+                required 
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="password-input">Password (Minimum 8 Characters) *</label>
+            <div class="pill-input-box">
+              <svg class="field-left-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input 
+                type="password" 
+                id="password-input" 
+                class="field-input" 
+                placeholder="Create a password" 
+                minlength="8" 
+                required 
+              />
+              <button type="button" class="eye-toggle" id="eye-toggle-1" title="Toggle password visibility">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="confirm-password-input">Confirm Password *</label>
+            <div class="pill-input-box">
+              <svg class="field-left-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input 
+                type="password" 
+                id="confirm-password-input" 
+                class="field-input" 
+                placeholder="Confirm your password" 
+                minlength="8" 
+                required 
+              />
+              <button type="button" class="eye-toggle" id="eye-toggle-2" title="Toggle password visibility">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="signup-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-top: 4px;"></div>
+
+          <button type="submit" class="sign-in-btn" id="signup-submit-btn" style="margin-top: 12px;">
+            Create Account
+          </button>
+        </form>
+
+        <div class="card-bottom-links" style="margin-top: 20px;">
+          <p class="signup-text">Already registered? <a href="login.html" class="signup-link">Sign In</a></p>
+          <div class="compliance-links">
+            <a href="#" class="legal-link">Advocate Confidentiality</a>
+            <span class="sep">/</span>
+            <a href="#" class="legal-link">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="signup.js"></script>
+</body>
+</html>

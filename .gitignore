@@ -1,6 +1,7 @@
 
 .env
 .env.*
+!.env.example
 
 *.pem
 *.key
@@ -82,7 +83,4 @@ coverage/
 Thumbs.db
 desktop.ini
 
-
-docker-compose*.yaml
-docker-compose*.yml
 

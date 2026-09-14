@@ -14,6 +14,7 @@ from app.models.document import Document
 from app.models.user import User
 from app.services.extraction import extract_document_text
 from app.services.chunking import ingest_document_chunks
+from app.services.vector_store import delete_chunks_by_document
 from app.schemas.document import (
     DocumentDetailResponse,
     DocumentListResponse,
@@ -268,6 +269,44 @@ async def update_document(
 
 
 @documents_router.delete(
+    "/purge-all",
+    summary="Permanently delete all documents uploaded by the current user",
+)
+async def purge_all_user_documents(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Safely and permanently deletes all uploaded documents, linked case records, 
+    and physical files belonging to the authenticated user."""
+    query = select(Document).where(Document.user_id == current_user.id)
+    res = await session.execute(query)
+    user_docs = res.scalars().all()
+
+    for doc in user_docs:
+        # Find cases linked to this doc to invalidate cache
+        case_query = select(CaseDocument.case_id).where(CaseDocument.document_id == doc.id)
+        case_res = await session.execute(case_query)
+        linked_case_ids = case_res.scalars().all()
+
+        try:
+            if doc.file_path:
+                Path(doc.file_path).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+        await session.delete(doc)
+
+        for c_id in linked_case_ids:
+            try:
+                delete_keys_by_pattern(f"rag:case:{c_id}:*")
+            except Exception:
+                pass
+
+    await session.commit()
+    return {"status": "success", "message": "All user uploaded documents have been permanently deleted."}
+
+
+@documents_router.delete(
     "/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a document permanently",
@@ -300,6 +339,12 @@ async def delete_document(
         Path(doc.file_path).unlink(missing_ok=True)
     except OSError:
         pass
+
+    # Delete vector embeddings from Weaviate
+    try:
+        delete_chunks_by_document(document_id)
+    except Exception as e:
+        print(f"Weaviate chunk deletion warning: {e}")
 
     await session.delete(doc)
     await session.commit()
