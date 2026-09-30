@@ -2,10 +2,12 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db_session
+from app.core.database import async_session_factory
 from app.core.security_guard import validate_and_sanitize_query
 from app.core.upload import compute_sha256, save_vault_file, validate_upload
 from app.models.chat import ChatMessage, ChatSession
@@ -23,7 +25,7 @@ from app.schemas.chat import (
 from app.schemas.research import LegalResearchRequest
 from app.services.extraction import extract_document_text
 from app.services.research import perform_legal_research
-from app.services.retrieval import generate_grounded_legal_answer
+from app.services.retrieval import generate_grounded_legal_answer, stream_grounded_legal_answer
 
 chat_router = APIRouter(prefix="/chat", tags=["Chat & Consultations"])
 
@@ -259,7 +261,8 @@ async def send_chat_message(
         research_req = LegalResearchRequest(query=query_text, max_precedents=3)
         research_res = perform_legal_research(research_req)
         synthesis_text = getattr(research_res, "synthesis", "") or getattr(research_res, "legal_analysis_and_strategy", "")
-        answer_text = f"**JUDICIAL PRECEDENT & STRATEGY ANALYSIS**\n\n{synthesis_text}"
+        topic_title = query_text.strip().rstrip("?.!").title()
+        answer_text = f"### {topic_title}\n\n{synthesis_text}"
         for p in research_res.precedents:
             sources_list.append(f"🏛️ {p.case_title} [{p.citation or ''}] — {p.court or ''} ({p.year or ''})")
         
@@ -306,6 +309,156 @@ async def send_chat_message(
         sources=sources_list,
         token_count=assistant_msg.token_count,
         created_at=assistant_msg.created_at,
+    )
+
+
+@chat_router.post(
+    "/sessions/{session_id}/messages/stream",
+    summary="Send legal prompt in session and stream synthesized answer word-by-word (SSE)",
+)
+async def stream_chat_message(
+    session_id: int,
+    payload: ChatMessageCreateRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> StreamingResponse:
+    query_text = payload.get_query()
+    if not query_text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Query content cannot be empty",
+        )
+    query_text = validate_and_sanitize_query(query_text)
+
+    # 1. Verify session ownership
+    stmt = select(ChatSession).where(
+        ChatSession.id == session_id,
+        ChatSession.user_id == current_user.id,
+    )
+    res = await session.execute(stmt)
+    chat_session = res.scalar_one_or_none()
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Consultation session not found",
+        )
+
+    # 2. Save user message immediately
+    user_tokens = max(1, len(query_text.split()))
+    user_msg = ChatMessage(
+        session_id=session_id,
+        role="user",
+        content=query_text,
+        sources=None,
+        token_count=user_tokens,
+    )
+    session.add(user_msg)
+
+    # 3. Auto-title session if still named default
+    if chat_session.title in ("New Consultation", "New Legal Chat", "New Chat", ""):
+        words = query_text.strip().split()
+        short_title = " ".join(words[:6])
+        if len(short_title) > 42:
+            short_title = short_title[:39] + "..."
+        chat_session.title = short_title
+
+    chat_session.updated_at = datetime.now(timezone.utc)
+    session.add(chat_session)
+    await session.commit()
+
+    target_case_id = payload.case_id or chat_session.case_id
+    user_id = current_user.id
+    mode = payload.mode
+    user_credits = current_user.deep_search_credits
+
+    async def sse_event_stream():
+        try:
+            if mode == "deep_search":
+                if user_credits <= 0:
+                    err_msg = "You have exhausted your 3 free Deep Search credits."
+                    yield f"data: {json.dumps({'type': 'error', 'message': err_msg})}\n\n"
+                    return
+
+                yield f"data: {json.dumps({'type': 'status', 'message': 'Searching live judicial databases (Indian Kanoon, LiveLaw, Bar & Bench)...'})}\n\n"
+                research_req = LegalResearchRequest(query=query_text, max_precedents=3)
+                research_res = perform_legal_research(research_req)
+                synthesis_text = getattr(research_res, "synthesis", "") or getattr(research_res, "legal_analysis_and_strategy", "")
+                topic_title = query_text.strip().rstrip("?.!").title()
+                answer_text = f"### {topic_title}\n\n{synthesis_text}"
+                sources_list = []
+                for p in research_res.precedents:
+                    sources_list.append(f"🏛️ {p.case_title} [{p.citation or ''}] — {p.court or ''} ({p.year or ''})")
+
+                async with async_session_factory() as db:
+                    u_stmt = select(User).where(User.id == user_id)
+                    u_res = await db.execute(u_stmt)
+                    u = u_res.scalar_one_or_none()
+                    if u:
+                        u.deep_search_credits = max(0, u.deep_search_credits - 1)
+                        db.add(u)
+                    asst_msg = ChatMessage(
+                        session_id=session_id,
+                        role="assistant",
+                        content=answer_text,
+                        sources=json.dumps(sources_list),
+                        token_count=user_tokens + 500,
+                    )
+                    db.add(asst_msg)
+                    await db.commit()
+
+                yield f"data: {json.dumps({'type': 'sources', 'sources': sources_list})}\n\n"
+                # Stream the synthesis in natural word chunks for smooth typewriter feel
+                words = answer_text.split(" ")
+                for i in range(0, len(words), 3):
+                    chunk = " ".join(words[i:i+3]) + (" " if i + 3 < len(words) else "")
+                    yield f"data: {json.dumps({'type': 'content', 'delta': chunk})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'full_answer': answer_text, 'sources': sources_list})}\n\n"
+                return
+
+            # Dual-Stream RAG (streaming token by token live from OpenAI)
+            async with async_session_factory() as db:
+                formatted_sources = []
+                async for event in stream_grounded_legal_answer(
+                    query=query_text,
+                    user_id=user_id,
+                    session=db,
+                    case_id=target_case_id,
+                    session_id=session_id,
+                ):
+                    if event["type"] == "sources":
+                        for s in event.get("sources", []):
+                            title = s.get("document_title") or "Statutory Authority"
+                            page = s.get("page_number")
+                            formatted_sources.append(f"📖 {title}" + (f", Page {page}" if page else ""))
+                        yield f"data: {json.dumps({'type': 'sources', 'sources': formatted_sources})}\n\n"
+
+                    elif event["type"] == "content":
+                        yield f"data: {json.dumps({'type': 'content', 'delta': event['delta']})}\n\n"
+
+                    elif event["type"] == "done":
+                        full_ans = event.get("full_answer", "")
+                        asst_msg = ChatMessage(
+                            session_id=session_id,
+                            role="assistant",
+                            content=full_ans,
+                            sources=json.dumps(formatted_sources),
+                            token_count=user_tokens + max(50, len(full_ans.split())),
+                        )
+                        db.add(asst_msg)
+                        await db.commit()
+                        yield f"data: {json.dumps({'type': 'done', 'full_answer': full_ans, 'sources': formatted_sources})}\n\n"
+
+        except Exception as exc:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+
+    return StreamingResponse(
+        sse_event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

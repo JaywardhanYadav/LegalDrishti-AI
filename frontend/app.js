@@ -273,53 +273,93 @@ async function handleSend() {
       }
     }
 
-    // 2. Dispatch message to chat endpoint if session exists
+    // 2. Dispatch message to chat streaming endpoint if session exists
     let responseHandled = false;
     if (activeSessionId) {
-      const msgRes = await fetch(`/api/v1/chat/sessions/${activeSessionId}/messages`, {
-        method: 'POST',
-        headers: getAuthHeaders(true),
-        body: JSON.stringify({
-          content: text,
-          mode: deepSearchActive ? 'deep_search' : 'dual_stream'
-        })
-      });
+      try {
+        const msgRes = await fetch(`/api/v1/chat/sessions/${activeSessionId}/messages/stream`, {
+          method: 'POST',
+          headers: getAuthHeaders(true),
+          body: JSON.stringify({
+            content: text,
+            mode: deepSearchActive ? 'deep_search' : 'dual_stream'
+          })
+        });
 
-      if (loadingEl.parentNode) loadingEl.remove();
-
-      if (msgRes.status === 401) {
-        alert("⚠️ Your session has expired. Please sign in again.");
-        logoutUser();
-        return;
-      }
-
-      if (msgRes.ok) {
-        const data = await msgRes.json();
-        const asst = data.assistant_message || data;
-        let sources = [];
-        if (Array.isArray(asst.sources)) {
-          sources = asst.sources.map(s => {
-            if (typeof s === 'string') return s;
-            if (s.case_title) return `🏛️ ${s.case_title} [${s.citation || ''}] — ${s.court || ''}`;
-            if (s.document_title) return `📖 ${s.document_title}${s.page_number ? `, Page ${s.page_number}` : ''}`;
-            return JSON.stringify(s);
-          });
-        }
-        appendMessage('ai', asst.content || asst.answer || '', sources);
-        responseHandled = true;
-
-        if (deepSearchActive) {
-          deepSearchActive = false;
-          if (modeToggleBtn) modeToggleBtn.classList.remove('active');
-          if (modeLabel) modeLabel.textContent = "Deep Search";
+        if (msgRes.status === 401) {
+          if (loadingEl.parentNode) loadingEl.remove();
+          alert("⚠️ Your session has expired. Please sign in again.");
+          logoutUser();
+          return;
         }
 
-        // Refresh sidebar sessions to reflect updated title and order
-        loadUserChatSessions();
-      } else {
-        const err = await msgRes.json().catch(() => ({}));
-        appendMessage('ai', `⚠️ Notice: ${err.detail || 'Server could not process inquiry at this moment.'}`);
-        responseHandled = true;
+        if (!msgRes.ok) {
+          if (loadingEl.parentNode) loadingEl.remove();
+          const err = await msgRes.json().catch(() => ({}));
+          appendMessage('ai', `⚠️ Notice: ${err.detail || 'Server could not process inquiry at this moment.'}`);
+          responseHandled = true;
+        } else {
+          if (loadingEl.parentNode) loadingEl.remove();
+          const streamMsg = createStreamingAiMessage();
+          const reader = msgRes.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
+          let accumulatedMarkdown = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('data: ')) {
+                const jsonStr = trimmed.slice(6).trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+                try {
+                  const event = JSON.parse(jsonStr);
+                  if (event.type === 'sources') {
+                    streamMsg.setSources(event.sources || []);
+                  } else if (event.type === 'status') {
+                    streamMsg.setStatus(event.message || '');
+                  } else if (event.type === 'content') {
+                    accumulatedMarkdown += (event.delta || '');
+                    streamMsg.updateContent(accumulatedMarkdown);
+                  } else if (event.type === 'done') {
+                    if (event.full_answer && !accumulatedMarkdown) {
+                      accumulatedMarkdown = event.full_answer;
+                      streamMsg.updateContent(accumulatedMarkdown);
+                    }
+                    if (event.sources && event.sources.length > 0) {
+                      streamMsg.setSources(event.sources);
+                    }
+                    streamMsg.finish();
+                  } else if (event.type === 'error') {
+                    streamMsg.updateContent(accumulatedMarkdown + `\n\n⚠️ Error: ${event.message}`);
+                    streamMsg.finish();
+                  }
+                } catch (parseErr) {
+                  // Partial JSON or unescaped chunk
+                }
+              }
+            }
+          }
+          streamMsg.finish();
+          responseHandled = true;
+
+          if (deepSearchActive) {
+            deepSearchActive = false;
+            if (modeToggleBtn) modeToggleBtn.classList.remove('active');
+            if (modeLabel) modeLabel.textContent = "Deep Search";
+          }
+
+          loadUserChatSessions();
+        }
+      } catch (streamErr) {
+        console.warn("Streaming fetch error:", streamErr);
       }
     }
 
@@ -350,7 +390,9 @@ async function handleSend() {
       if (res.ok) {
         const data = await res.json();
         if (deepSearchActive) {
-          let content = `**LEGAL RESEARCH & STRATEGY**\n${data.legal_analysis_and_strategy || data.answer || ''}\n\n`;
+          const topicTitle = text.trim().replace(/[?.!]+$/, '');
+          const body = data.legal_analysis_and_strategy || data.answer || data.synthesis || '';
+          let content = `### ${topicTitle}\n\n${body}\n\n`;
           const sources = (data.precedents || []).map(p => `🏛️ ${p.case_title} [${p.citation}] — ${p.court} (${p.year})`);
           appendMessage('ai', content, sources);
 
@@ -472,6 +514,88 @@ function renderMarkdownFallback(rawText) {
   html = html.replace(/\n\n/g, '<p></p>');
 
   return html;
+}
+
+function createStreamingAiMessage() {
+  if (!messagesStream) return null;
+  const msgEl = document.createElement('div');
+  msgEl.className = 'message-bubble ai';
+  msgEl.innerHTML = `
+    <div class="bubble-content">
+      <div class="streaming-status-badge" style="display: none;">
+        <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span class="status-text">Thinking...</span>
+      </div>
+      <div class="markdown-body">
+        <span class="streaming-content"></span><span class="streaming-cursor"></span>
+      </div>
+      <div class="resources-wrapper" style="display: none;">
+        <div class="resources-header">
+          <span class="resources-label">Resources :</span>
+          <button class="btn-toggle-resources" type="button" aria-expanded="false" title="Click to view all resources">
+            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span class="btn-toggle-text">View Resources (0)</span>
+          </button>
+        </div>
+        <div class="resources-list" style="display: none;"></div>
+      </div>
+    </div>
+  `;
+  messagesStream.appendChild(msgEl);
+  messagesStream.scrollTop = messagesStream.scrollHeight;
+
+  const contentEl = msgEl.querySelector('.streaming-content');
+  const cursorEl = msgEl.querySelector('.streaming-cursor');
+  const statusBadge = msgEl.querySelector('.streaming-status-badge');
+  const statusText = msgEl.querySelector('.status-text');
+  const resourcesWrapper = msgEl.querySelector('.resources-wrapper');
+  const resourcesList = msgEl.querySelector('.resources-list');
+  const toggleBtn = msgEl.querySelector('.btn-toggle-resources');
+  const toggleText = msgEl.querySelector('.btn-toggle-text');
+
+  return {
+    setStatus: (msg) => {
+      if (statusBadge && statusText) {
+        statusText.textContent = msg;
+        statusBadge.style.display = 'inline-flex';
+      }
+    },
+    updateContent: (accumulatedText) => {
+      if (statusBadge) statusBadge.style.display = 'none';
+      renderAssistantMessage(accumulatedText, contentEl);
+      messagesStream.scrollTop = messagesStream.scrollHeight;
+    },
+    setSources: (sources) => {
+      if (!sources || sources.length === 0) return;
+      resourcesWrapper.style.display = 'block';
+      toggleText.textContent = `View Resources (${sources.length})`;
+      resourcesList.innerHTML = sources.map(s => `<span class="source-tag">${escapeHtml(s)}</span>`).join('');
+
+      toggleBtn.onclick = () => {
+        const isHidden = (resourcesList.style.display === 'none' || !resourcesList.style.display);
+        if (isHidden) {
+          resourcesList.style.display = 'flex';
+          toggleBtn.setAttribute('aria-expanded', 'true');
+          toggleBtn.classList.add('expanded');
+          toggleText.textContent = 'Hide Resources';
+        } else {
+          resourcesList.style.display = 'none';
+          toggleBtn.setAttribute('aria-expanded', 'false');
+          toggleBtn.classList.remove('expanded');
+          toggleText.textContent = `View Resources (${sources.length})`;
+        }
+      };
+    },
+    finish: () => {
+      if (statusBadge) statusBadge.style.display = 'none';
+      if (cursorEl) cursorEl.remove();
+      messagesStream.scrollTop = messagesStream.scrollHeight;
+    }
+  };
 }
 
 function appendMessage(sender, text, sources = [], attachedFileName = null) {

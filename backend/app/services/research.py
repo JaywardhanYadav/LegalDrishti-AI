@@ -1,7 +1,7 @@
-import json
-from openai import OpenAI
-from tavily import TavilyClient
 import hashlib
+import json
+import httpx
+from openai import OpenAI
 from app.core.redis_client import get_cache, set_cache
 
 from app.core.config import get_settings
@@ -25,21 +25,30 @@ def execute_tavily_legal_search(req: LegalResearchRequest) -> list[dict]:
     if not settings.tavily_api_key or not settings.tavily_api_key.strip():
         raise ValueError("TAVILY_API_KEY is not configured in .env.")
 
-    client = TavilyClient(api_key=settings.tavily_api_key)
-
     query_str = req.query
     if req.court_filter:
         query_str += f" court:{req.court_filter}"
 
-    search_response = client.search(
-        query=query_str,
-        search_depth="advanced",
-        max_results=req.max_results,
-        include_domains=TRUSTED_LEGAL_DOMAINS,
-        include_raw_content="markdown",
-    )
+    max_count = req.max_precedents or req.max_results or 5
 
-    return search_response.get("results", [])
+    payload = {
+        "api_key": settings.tavily_api_key.strip().strip('"').strip("'"),
+        "query": query_str,
+        "search_depth": "advanced",
+        "max_results": max_count,
+        "include_domains": TRUSTED_LEGAL_DOMAINS,
+        "include_raw_content": True,
+    }
+
+    base_url = (settings.tavily_base_url or "https://api.tavily.com").rstrip("/")
+    if "www.tavily.com" in base_url or base_url in ("https://tavily.com", "http://tavily.com"):
+        base_url = "https://api.tavily.com"
+
+    url = f"{base_url}/search"
+    resp = httpx.post(url, json=payload, timeout=30.0)
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get("results", [])
 
 
 def synthesize_precedents_with_llm(
@@ -111,14 +120,29 @@ def synthesize_precedents_with_llm(
     )
 
 
-    response = client.chat.completions.create(
-        model=settings.openai_model or "gpt-4o-mini",
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
+    chosen_model = settings.openai_model or "gpt-4o-mini"
+    if "terra" in chosen_model or "5.6" in chosen_model:
+        chosen_model = "gpt-4o-mini"
+
+    try:
+        response = client.chat.completions.create(
+            model=chosen_model,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+    except Exception as llm_err:
+        print(f"[Research LLM Fallback] Model '{chosen_model}' failed ({llm_err}). Retrying with 'gpt-4o-mini'...")
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
 
     content = response.choices[0].message.content or "{}"
     parsed = json.loads(content)

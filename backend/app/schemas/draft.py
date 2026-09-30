@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 class DraftTypeEnum(str, Enum):
     NOTICE_138_NI_ACT = "notice_138_ni_act"
     ANTICIPATORY_BAIL_BNSS = "anticipatory_bail_bnss"
@@ -60,8 +60,7 @@ class DraftResponse(BaseModel):
     version: int
     created_at: datetime
     updated_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 class DraftListResponse(BaseModel):
     items: list[DraftResponse]
     total: int

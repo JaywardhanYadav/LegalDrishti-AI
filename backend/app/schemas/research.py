@@ -17,6 +17,10 @@ class LegalResearchRequest(BaseModel):
         le=10,
         description="Number of authoritative precedents to retrieve",
     )
+    max_precedents: int | None = Field(
+        default=None,
+        description="Alias for max_results",
+    )
 
 
 class PrecedentItem(BaseModel):

@@ -296,8 +296,10 @@ async def generate_grounded_legal_answer(
 
     cached_result = get_cache(cache_key)
     if cached_result is not None:
-        print(f"[Redis Cache HIT] Serving instant Grounded RAG answer from RAM: '{query[:40]}...'")
-        return cached_result
+        cached_ans = cached_result.get("answer", "")
+        if "I can only assist with inquiries regarding Indian law" not in cached_ans:
+            print(f"[Redis Cache HIT] Serving instant Grounded RAG answer from RAM: '{query[:40]}...'")
+            return cached_result
 
     print(f"[Redis Cache MISS] Executing Dual-Stream RAG pipeline: '{query[:40]}...'")
 
@@ -361,44 +363,39 @@ async def generate_grounded_legal_answer(
 
     system_prompt = (
         "You are LegalDrishti AI, an authoritative, precise legal intelligence assistant specializing in Indian law.\n"
-        "Provide direct, professional, and meaningful legal analysis without fluff, filler, or excessive length.\n\n"
+        "Provide direct, professional, and meaningful legal analysis for all inquiries regarding Indian law, "
+        "constitutional principles, statutory provisions, legal definitions, procedures, or case briefs.\n\n"
         "CRITICAL INSTRUCTIONS & EDITORIAL CONSTRAINTS:\n"
-        "1. CONCISE & FOCUSED LENGTH:\n"
-        "   - Keep your entire response concise, sharp, and strictly under 300-350 words.\n"
-        "   - Deliver maximum legal value in minimal words.\n\n"
-        "2. ZERO CONTEXT LEAKS (STRICT):\n"
-        "   - NEVER use phrases such as 'according to the provided text', 'as stated in the course material', "
-        "'as identified in the statutory materials', 'based on the documents', 'the brief is silent', or 'supplied records'.\n"
-        "   - Synthesize all facts, legal principles, and statutory rules directly in an objective, authoritative third-person voice.\n\n"
-        "3. STATUTORY INTERPLAY & DEMARCATION:\n"
+        "1. OBJECTIVE & AUTHORITATIVE VOICE:\n"
+        "   - Synthesize all legal principles, statutory sections, and judicial doctrines in an objective third-person voice.\n"
+        "   - Never use phrases like 'according to the provided text', 'based on the documents', or 'supplied records'.\n\n"
+        "2. ADAPTABLE, STRUCTURED FORMATTING:\n"
+        "   - For specific legal questions, criminal offenses, commercial disputes, or statutory provisions:\n"
+        "     Use headings: Executive Summary, Key Highlights (bullet points), Comparison Table (e.g. IPC vs BNS or Statute vs Legal Effect where applicable), and Procedural and Evidentiary Demarcation.\n"
+        "   - For foundational, general, or constitutional overviews (e.g. 'What is Indian Law', Fundamental Rights, Constitutional Law):\n"
+        "     Provide a structured, comprehensive legal explanation with clear headings (Constitutional Foundation, Key Sources of Law, Substantive vs. Procedural Framework, Key Enactments).\n\n"
+        "3. STATUTORY INTERPLAY & HIGH PRECISION:\n"
         "   - Maintain clear demarcations between substantive penal law (BNS: offences and punishments), "
-        "criminal procedure (BNSS: FIR, arrest, bail, investigation, and trial), and evidentiary rules (BSA: proof and electronic admissibility).\n\n"
-        "4. HIGH PRECISION & LEGAL NUANCE:\n"
-        "   - Cite exact sections and subsections (e.g., Section 103(2) BNS for group murder/mob lynching, Section 69 BNS for deceitful intercourse, Section 152 BNS for acts endangering sovereignty, Section 4 BNS for community service).\n"
-        "   - Note temporal applicability: Article 20(1) of the Constitution guarantees non-retrospectivity (acts committed before 1 July 2024 remain governed by IPC).\n"
-        "   - Mention key administrative status: e.g., Section 106(2) hit-and-run provisions held in abeyance pending implementation.\n\n"
-        "5. CLEAN, SCANNABLE FORMATTING:\n"
-        "   - Structure with: a crisp Executive Summary, Key Highlights (bullet points), a compact 4-5 row IPC vs. BNS comparison table, and a brief procedural note.\n"
-        "   - Avoid excessive nested symbols or bloated text.\n\n"
-        "6. ETHICAL BOUNDARY:\n"
-        "   - Provide objective legal intelligence. Never state 'I advise you as your advocate'.\n\n"
-        "7. NON-LEGAL OR SILLY INQUIRIES (CRITICAL):\n"
-        "   - If the user query is non-legal, personal, casual chit-chat, or asking about friends, feelings, personal life, or non-legal topics, NEVER generate legal tables, statutory sections, executive summaries, or procedural notes.\n"
-        "   - Instead, output ONLY this standard response verbatim:\n"
-        "     \"I am LegalDrishti AI, an AI legal intelligence assistant. I can only assist with inquiries regarding Indian law, legal procedures, statutory provisions, or your case briefs. Please feel free to ask any question regarding Indian legal matters.\""
+        "criminal procedure (BNSS: FIR, arrest, bail, investigation, trial), and evidentiary rules (BSA: proof and electronic admissibility).\n"
+        "   - Cite exact sections and subsections where relevant (e.g. Section 103(2) BNS, Section 69 BNS, Section 482 BNSS, Section 138 NI Act).\n"
+        "   - Note temporal applicability: Article 20(1) guarantees non-retrospectivity (acts committed before 1 July 2024 remain governed by IPC).\n\n"
+        "4. ETHICAL BOUNDARY:\n"
+        "   - Provide objective legal intelligence. Never state 'I advise you as your advocate'.\n"
     )
 
     user_prompt = (
         f"<user_legal_query>\n{query}\n</user_legal_query>\n\n"
         f"<statutory_and_case_context>\n{context_text}\n</statutory_and_case_context>\n\n"
-        "Deliver a concise, authoritative, and scannable legal breakdown answering the query, "
-        "incorporating statutory interplay and a compact section comparison table where helpful. "
-        "(If the inquiry is non-legal, personal, or silly, output ONLY the standard non-legal response without any tables or legal notes):"
+        "Deliver an authoritative, well-structured legal breakdown answering the user's legal query:"
     )
+
+    model_to_use = settings.openai_model or "gpt-4o-mini"
+    if "terra" in model_to_use or "5.6" in model_to_use:
+        model_to_use = "gpt-4o-mini"
 
     client = OpenAI(api_key=settings.openai_api_key)
     response = client.chat.completions.create(
-        model=settings.openai_model or "gpt-4o-mini",
+        model=model_to_use,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -431,7 +428,179 @@ async def generate_grounded_legal_answer(
         "grounded": True,
     }
 
-    # Cache response for 2 hours (7200 seconds)
-    set_cache(cache_key, result_payload, expire_seconds=7200)
+    # Cache response for 2 hours (7200 seconds) only if it is a genuine legal answer
+    if "I can only assist with inquiries regarding Indian law" not in answer_text:
+        set_cache(cache_key, result_payload, expire_seconds=7200)
 
     return result_payload
+
+
+async def stream_grounded_legal_answer(
+    query: str,
+    user_id: int,
+    session: AsyncSession,
+    case_id: int | None = None,
+    candidate_pool_size: int = 20,
+    top_k: int = 5,
+    alpha: float = 0.5,
+    session_id: int | None = None,
+):
+    """
+    Asynchronous generator streaming the legal answer word-by-word
+    over Server-Sent Events (SSE).
+    """
+    quick_reply = check_conversational_or_meta_query(query)
+    if quick_reply:
+        yield {"type": "sources", "sources": []}
+        yield {"type": "content", "delta": quick_reply}
+        yield {"type": "done", "full_answer": quick_reply, "sources": []}
+        return
+
+    query_hash = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:16]
+    if session_id:
+        cache_key = f"rag:session:{session_id}:{query_hash}"
+    elif case_id:
+        cache_key = f"rag:case:{case_id}:{query_hash}"
+    else:
+        cache_key = f"rag:global:{user_id}:{query_hash}"
+
+    cached_result = get_cache(cache_key)
+    if cached_result is not None:
+        cached_ans = cached_result.get("answer", "")
+        if "I can only assist with inquiries regarding Indian law" not in cached_ans:
+            print(f"[Redis Cache HIT - Stream] Serving from RAM: '{query[:40]}...'")
+            cached_sources = cached_result.get("sources", [])
+            yield {"type": "sources", "sources": cached_sources}
+            yield {"type": "content", "delta": cached_ans}
+            yield {"type": "done", "full_answer": cached_ans, "sources": cached_sources}
+            return
+
+    settings = get_settings()
+
+    session_chunks: list[dict] = []
+    if session_id:
+        try:
+            doc_stmt = select(Document).where(
+                Document.session_id == session_id,
+                Document.user_id == user_id,
+            )
+            doc_res = await session.execute(doc_stmt)
+            session_docs = doc_res.scalars().all()
+            for s_doc in session_docs:
+                if s_doc.extracted_text:
+                    session_chunks.append({
+                        "source_type": "session_document",
+                        "document_id": s_doc.id,
+                        "document_title": s_doc.title or s_doc.file_name,
+                        "page_number": 1,
+                        "chunk_text": s_doc.extracted_text[:4000],
+                        "score": 1.0,
+                    })
+        except Exception:
+            pass
+
+    case_chunks: list[dict] = []
+    if case_id is not None:
+        case_chunks = await retrieve_case_context(
+            query=query,
+            user_id=user_id,
+            session=session,
+            case_id=case_id,
+            candidate_pool_size=candidate_pool_size,
+            top_k=top_k,
+            alpha=alpha,
+        )
+
+    statute_chunks = retrieve_statutory_context(
+        query=query,
+        max_statutes=5,
+        candidate_pool_size=candidate_pool_size,
+        top_k=top_k,
+        alpha=alpha,
+    )
+
+    all_chunks = session_chunks + case_chunks + statute_chunks
+
+    seen_sources = set()
+    sources = []
+    for c in all_chunks:
+        doc_title = c.get("document_title") or "Indian Bare Act"
+        page_num = c.get("page_number", 1)
+        key = (doc_title, page_num)
+        if key not in seen_sources:
+            seen_sources.add(key)
+            sources.append({
+                "source_type": c.get("source_type"),
+                "document_title": doc_title,
+                "page_number": page_num,
+                "score": float(c["score"]) if c.get("score") is not None else None,
+            })
+    sources = sources[:3]
+
+    if not all_chunks:
+        empty_answer = "The brief placed on record and the statutory repository do not disclose information matching this inquiry."
+        set_cache(cache_key, {"answer": empty_answer, "sources": [], "grounded": False}, expire_seconds=3600)
+        yield {"type": "sources", "sources": []}
+        yield {"type": "content", "delta": empty_answer}
+        yield {"type": "done", "full_answer": empty_answer, "sources": []}
+        return
+
+    # Yield sources first so the UI displays them immediately
+    yield {"type": "sources", "sources": sources}
+
+    context_text = format_dual_stream_context(case_chunks, statute_chunks, session_chunks=session_chunks)
+
+    system_prompt = (
+        "You are LegalDrishti AI, an authoritative, precise legal intelligence assistant specializing in Indian law.\n"
+        "Provide direct, professional, and meaningful legal analysis for all inquiries regarding Indian law, "
+        "constitutional principles, statutory provisions, legal definitions, procedures, or case briefs.\n\n"
+        "CRITICAL INSTRUCTIONS & EDITORIAL CONSTRAINTS:\n"
+        "1. OBJECTIVE & AUTHORITATIVE VOICE:\n"
+        "   - Synthesize all legal principles, statutory sections, and judicial doctrines in an objective third-person voice.\n"
+        "   - Never use phrases like 'according to the provided text', 'based on the documents', or 'supplied records'.\n\n"
+        "2. ADAPTABLE, STRUCTURED FORMATTING:\n"
+        "   - For specific legal questions, criminal offenses, commercial disputes, or statutory provisions:\n"
+        "     Use headings: Executive Summary, Key Highlights (bullet points), Comparison Table (e.g. IPC vs BNS or Statute vs Legal Effect where applicable), and Procedural and Evidentiary Demarcation.\n"
+        "   - For foundational, general, or constitutional overviews (e.g. 'What is Indian Law', Fundamental Rights, Constitutional Law):\n"
+        "     Provide a structured, comprehensive legal explanation with clear headings (Constitutional Foundation, Key Sources of Law, Substantive vs. Procedural Framework, Key Enactments).\n\n"
+        "3. STATUTORY INTERPLAY & HIGH PRECISION:\n"
+        "   - Maintain clear demarcations between substantive penal law (BNS: offences and punishments), "
+        "criminal procedure (BNSS: FIR, arrest, bail, investigation, trial), and evidentiary rules (BSA: proof and electronic admissibility).\n"
+        "   - Cite exact sections and subsections where relevant (e.g. Section 103(2) BNS, Section 69 BNS, Section 482 BNSS, Section 138 NI Act).\n"
+        "   - Note temporal applicability: Article 20(1) guarantees non-retrospectivity (acts committed before 1 July 2024 remain governed by IPC).\n\n"
+        "4. ETHICAL BOUNDARY:\n"
+        "   - Provide objective legal intelligence. Never state 'I advise you as your advocate'.\n"
+    )
+
+    user_prompt = (
+        f"<user_legal_query>\n{query}\n</user_legal_query>\n\n"
+        f"<statutory_and_case_context>\n{context_text}\n</statutory_and_case_context>\n\n"
+        "Deliver an authoritative, well-structured legal breakdown answering the user's legal query:"
+    )
+
+    model_to_use = settings.openai_model or "gpt-4o-mini"
+    if "terra" in model_to_use or "5.6" in model_to_use:
+        model_to_use = "gpt-4o-mini"
+
+    client = OpenAI(api_key=settings.openai_api_key)
+    stream_response = client.chat.completions.create(
+        model=model_to_use,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        stream=True,
+    )
+
+    full_answer_parts = []
+    for chunk in stream_response:
+        delta = chunk.choices[0].delta.content or ""
+        if delta:
+            full_answer_parts.append(delta)
+            yield {"type": "content", "delta": delta}
+
+    full_answer_text = "".join(full_answer_parts).strip()
+    if "I can only assist with inquiries regarding Indian law" not in full_answer_text:
+        set_cache(cache_key, {"answer": full_answer_text, "sources": sources, "grounded": True}, expire_seconds=7200)
+
+    yield {"type": "done", "full_answer": full_answer_text, "sources": sources}
