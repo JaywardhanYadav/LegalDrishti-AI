@@ -37,13 +37,17 @@ def run_evaluation(num_samples=None):
     print(f"🏛️  LegalDrishti AI Evaluation Runner (Scenarios: {total_scenarios})")
     print(f"=======================================================\n")
 
-    # Try importing Statute Router
+    # Try importing Statute Router (prefer lightweight direct module)
     try:
-        from app.services.retrieval import route_query_to_statutes
+        from app.services.statute_router import route_query_to_statutes
         has_router = True
-    except Exception as e:
-        print(f"⚠️  Note: Backend modules not loaded ({e}). Running in standalone benchmark verification mode.\n")
-        has_router = False
+    except Exception:
+        try:
+            from app.services.retrieval import route_query_to_statutes
+            has_router = True
+        except Exception as e:
+            print(f"⚠️  Note: Backend modules not loaded ({e}). Running in standalone benchmark verification mode.\n")
+            has_router = False
 
     passed_router = 0
     categories = {}
