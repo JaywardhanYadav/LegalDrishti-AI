@@ -39,11 +39,11 @@ def run_evaluation(num_samples=None):
 
     # Try importing Statute Router (prefer lightweight direct module)
     try:
-        from app.services.statute_router import route_query_to_statutes
+        from app.services.statute_router import route_query_to_statutes  # type: ignore
         has_router = True
     except Exception:
         try:
-            from app.services.retrieval import route_query_to_statutes
+            from app.services.retrieval import route_query_to_statutes  # type: ignore
             has_router = True
         except Exception as e:
             print(f"⚠️  Note: Backend modules not loaded ({e}). Running in standalone benchmark verification mode.\n")
