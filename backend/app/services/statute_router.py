@@ -75,6 +75,31 @@ EXPLICIT_INTENT_MAP = [
         "pdf_name": "THE CONSTITUTION OF INDIA.pdf",
         "category": "constitutional",
     },
+    {
+        "patterns": [r"\bcpc\b", r"\bcode of civil procedure\b", r"\bcivil procedure\b", r"\blimitation act\b"],
+        "pdf_name": "Code of Civil Procedure & Limitation Act.pdf",
+        "category": "civil_procedure",
+    },
+    {
+        "patterns": [r"\bit act\b", r"\binformation technology\b", r"\bcyber\b", r"\bcyber crime\b"],
+        "pdf_name": "THE INFORMATION TECHNOLOGY ACT, 2000.pdf",
+        "category": "cyber",
+    },
+    {
+        "patterns": [r"\bconsumer protection\b", r"\bconsumer court\b", r"\bconsumer dispute\b"],
+        "pdf_name": "THE CONSUMER PROTECTION ACT, 2019.pdf",
+        "category": "consumer",
+    },
+    {
+        "patterns": [r"\bcompanies act\b", r"\bcompany law\b", r"\bboard of directors\b", r"\broc\b"],
+        "pdf_name": "THE COMPANIES ACT, 2013.pdf",
+        "category": "corporate",
+    },
+    {
+        "patterns": [r"\brti\b", r"\bright to information\b", r"\bpublic information officer\b", r"\bpio\b"],
+        "pdf_name": "Right to Information Act, 2005.pdf",
+        "category": "transparency",
+    },
 ]
 
 
