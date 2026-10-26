@@ -7,12 +7,16 @@ Outputs a structured catalog to backend/app/core/statute_keywords.json.
 """
 
 import os
+import sys
 import re
 import math
 import json
 from collections import Counter
 from pathlib import Path
 from pypdf import PdfReader
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -161,15 +165,15 @@ def build_statute_keywords_catalog():
             final_score = tf_norm * idf * phrase_length_boost
             scored_phrases.append((phrase, final_score, tf, df))
 
-        # Sort by highest score and pick top 100
+        # Sort by highest score and pick top 250
         scored_phrases.sort(key=lambda x: x[1], reverse=True)
-        top_100 = [phrase for phrase, score, tf, df in scored_phrases[:100]]
+        top_250 = [phrase for phrase, score, tf, df in scored_phrases[:250]]
 
         catalog[pdf_name] = {
             "total_extracted_unique_phrases": len(scored_phrases),
-            "top_100_keywords": top_100,
+            "top_250_keywords": top_250,
         }
-        print(f"✓ {pdf_name}: Extracted {len(top_100)} top keywords (Top 3: {top_100[:3]})")
+        print(f"[OK] {pdf_name}: Extracted {len(top_250)} top keywords (Top 3: {top_250[:3]})")
 
     # Step 3: Save catalog to JSON
     OUTPUT_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -177,7 +181,7 @@ def build_statute_keywords_catalog():
         json.dump(catalog, f, indent=2, ensure_ascii=False)
 
     print("\n" + "=" * 70)
-    print(f"SUCCESS! Saved Top 100 keywords for all {len(catalog)} PDFs to:")
+    print(f"SUCCESS! Saved Top 250 keywords for all {len(catalog)} PDFs to:")
     print(f"{OUTPUT_JSON_PATH}")
     print("=" * 70)
 
