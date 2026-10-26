@@ -135,9 +135,56 @@ def extract_text_from_image(file_path: str | Path) -> tuple[str, int]:
         raise DocumentExtractionError(f"Vision OCR transcription failed: {exc}") from exc
 
 
-def extract_document_text(file_path: str | Path) -> tuple[str, int]:
+def extract_text_with_docling(file_path: str | Path, max_pages: int | None = None) -> tuple[str, int]:
+    """
+    Extracts structured Markdown from PDF or DOCX using IBM Docling.
+    Retains tables, layout headers, and document structure.
+    """
+    path = Path(file_path)
+    if not path.is_file():
+        raise DocumentExtractionError(f"File not found for Docling parsing: {path}")
+
+    try:
+        from docling.document_converter import DocumentConverter, PdfFormatOption
+        from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+        pipeline_options = PdfPipelineOptions()
+        pipeline_options.do_ocr = False
+
+        converter = DocumentConverter(
+            format_options={
+                "pdf": PdfFormatOption(pipeline_options=pipeline_options)
+            }
+        )
+
+        kwargs = {}
+        if max_pages is not None:
+            kwargs["page_range"] = (1, max_pages)
+
+        result = converter.convert(str(path), **kwargs)
+        markdown_text = result.document.export_to_markdown()
+
+        total_pages = 1
+        if hasattr(result.document, "pages") and result.document.pages:
+            total_pages = len(result.document.pages)
+
+        return markdown_text.strip(), total_pages
+
+    except Exception as exc:
+        raise DocumentExtractionError(f"Docling parsing failed for '{path.name}': {exc}") from exc
+
+
+def extract_document_text(file_path: str | Path, prefer_docling: bool = False) -> tuple[str, int]:
     path = Path(file_path)
     suffix = path.suffix.lower()
+
+    if prefer_docling and suffix in {".pdf", ".docx"}:
+        try:
+            return extract_text_with_docling(path)
+        except Exception as exc:
+            # Fall back seamlessly to native extraction on any failure
+            print(f"[Parser Notice] Docling skipped for '{path.name}' ({exc}). Using native parser.")
+
     if suffix == ".pdf":
         return extract_text_from_pdf(path)
     elif suffix == ".docx":
@@ -148,3 +195,4 @@ def extract_document_text(file_path: str | Path) -> tuple[str, int]:
         return extract_text_from_image(path)
     else:
         raise DocumentExtractionError(f"Unsupported file format for extraction: '{suffix}'")
+
