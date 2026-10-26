@@ -19,18 +19,11 @@ from weaviate.classes.query import Filter
 LEGAL_PDFS_DIR = BASE_DIR.parent / "Legal Pdfs"
 
 
-def chunk_text(text: str, chunk_size: int = 800, overlap: int = 150) -> list[str]:
-    if not text.strip():
-        return []
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunk = text[start:end].strip()
-        if chunk:
-            chunks.append(chunk)
-        start += (chunk_size - overlap)
-    return chunks
+from app.services.chunking import (
+    split_legal_statute_text,
+    split_legal_document_text,
+    is_statutory_text,
+)
 
 
 def get_indexed_chunk_count(pdf_name: str) -> int:
@@ -73,31 +66,37 @@ async def index_pdf_file(pdf_path: Path, max_pages: int = 150):
     pages_to_process = min(total_pages, max_pages)
     print(f"  --> Reading {pages_to_process} of {total_pages} pages...")
 
-    all_chunks: list[dict] = []
-    chunk_counter = 0
-
+    page_segments: list[str] = []
     for page_idx in range(pages_to_process):
         page_num = page_idx + 1
         try:
             page_text = reader.pages[page_idx].extract_text() or ""
+            if page_text.strip():
+                page_segments.append(f"--- [Page {page_num}] ---\n{page_text.strip()}")
         except Exception:
             continue
 
-        raw_chunks = chunk_text(page_text, chunk_size=800, overlap=150)
-        for c in raw_chunks:
-            if len(c) < 50:
-                continue
-            chunk_counter += 1
-            all_chunks.append({
-                "chunk_text": c,
-                "pdf_name": pdf_name,
-                "page_number": page_num,
-                "chunk_index": chunk_counter,
-            })
-
-    if not all_chunks:
+    if not page_segments:
         print(f"  --> Warning: No extractable text found in '{pdf_name}'.")
         return
+
+    full_text = "\n\n".join(page_segments)
+
+    # Use contextual semantic chunking with sticky header injection
+    if is_statutory_text(full_text):
+        chunk_tuples = split_legal_statute_text(full_text, statute_name=pdf_name)
+    else:
+        chunk_tuples = split_legal_document_text(full_text, document_title=pdf_name)
+
+    all_chunks: list[dict] = []
+    for chunk_counter, (c_text, page_num, _) in enumerate(chunk_tuples, start=1):
+        all_chunks.append({
+            "chunk_text": c_text,
+            "pdf_name": pdf_name,
+            "page_number": page_num,
+            "chunk_index": chunk_counter,
+        })
+
 
     # If already fully indexed, skip
     if existing_count >= len(all_chunks):
