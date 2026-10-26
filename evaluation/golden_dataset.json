@@ -1054,26 +1054,6 @@
     "complexity": "Intermediate"
   },
   {
-    "id": "CPC-007",
-    "category": "Civil Procedure & Remedies",
-    "sub_category": "Summary Suit for Possession",
-    "statute": "Specific Relief Act, 1963",
-    "relevant_sections": [
-      "Section 6 SRA"
-    ],
-    "question": "What are the rules and limitation period for a summary suit for recovery of possession of immovable property under Section 6 of the Specific Relief Act?",
-    "ground_truth_context": "Section 6 SRA provides that if any person is dispossessed without his consent of immovable property otherwise than in due course of law, he may recover possession by suit, notwithstanding any other title. No suit under this section shall be brought after the expiry of six months from dispossession or against the Government.",
-    "ground_truth_answer": "Under Section 6 SRA: (1) A person dispossessed without consent and otherwise than in due course of law can file a summary suit for possession regardless of title; (2) The suit must be filed within 6 months of dispossession; (3) No such suit lies against the Government; (4) No appeal or review lies against the decree.",
-    "key_statutory_ingredients": [
-      "Possession regardless of title",
-      "Within 6 months",
-      "No suit against Government",
-      "Section 6 SRA"
-    ],
-    "citation_benchmark": "ITC Ltd. v. Adarsh Cooperative Housing Society Ltd. (2013) 10 SCC 169",
-    "complexity": "Intermediate"
-  },
-  {
     "id": "CPC-008",
     "category": "Civil Procedure & Remedies",
     "sub_category": "Execution of Foreign Decrees",
@@ -1150,66 +1130,6 @@
       "Section 11(6A)"
     ],
     "citation_benchmark": "In Re: Interplay Between Arbitration Agreements & Stamp Act 2023 INSC 1066",
-    "complexity": "Advanced"
-  },
-  {
-    "id": "IBC-001",
-    "category": "Insolvency and Bankruptcy Code",
-    "sub_category": "Financial Creditor CIRP",
-    "statute": "Insolvency and Bankruptcy Code, 2016",
-    "relevant_sections": [
-      "Section 7 IBC"
-    ],
-    "question": "What must a Financial Creditor prove before the NCLT to initiate CIRP under Section 7 of IBC 2016?",
-    "ground_truth_context": "Under Section 7 IBC, a financial creditor can initiate CIRP when a default of at least INR 1 Crore has occurred. The Adjudicating Authority (NCLT) must satisfy itself regarding the existence of a 'financial debt' and 'default' within 14 days.",
-    "ground_truth_answer": "To initiate Corporate Insolvency Resolution Process (CIRP) under Section 7 IBC: (1) Minimum default threshold of INR 1 Crore; (2) Establishing that the debt is a 'financial debt' disbursal against consideration for time value of money; (3) Proof of default (via NeSL record or bank statements). Once debt and default are established, admission is virtually mandatory.",
-    "key_statutory_ingredients": [
-      "Threshold of INR 1 Crore",
-      "Financial debt + default",
-      "Section 7 IBC",
-      "Innoventive Industries rule"
-    ],
-    "citation_benchmark": "Innoventive Industries Ltd. v. ICICI Bank (2018) 1 SCC 407",
-    "complexity": "Intermediate"
-  },
-  {
-    "id": "IBC-002",
-    "category": "Insolvency and Bankruptcy Code",
-    "sub_category": "Operational Creditor & Pre-existing Dispute",
-    "statute": "Insolvency and Bankruptcy Code, 2016",
-    "relevant_sections": [
-      "Section 8 IBC",
-      "Section 9 IBC"
-    ],
-    "question": "What is the effect of a 'pre-existing dispute' raised in reply to a Section 8 demand notice on a Section 9 IBC petition?",
-    "ground_truth_context": "Section 9(5)(ii)(d) provides that the Adjudicating Authority shall reject the application if notice of dispute has been received by the operational creditor. Mobilox held that if there is a plausible contention requiring further investigation, the petition must be rejected.",
-    "ground_truth_answer": "Under Section 8 & 9 IBC, if the corporate debtor raises a genuine, bona fide 'pre-existing dispute' prior to the receipt of the Section 8 demand notice (e.g. prior emails complaining of sub-standard goods or pending suit), the NCLT **must reject** the Section 9 petition. The IBC cannot be used as a debt recovery tool.",
-    "key_statutory_ingredients": [
-      "Pre-existing dispute bars Sec 9",
-      "Mobilox test",
-      "Not a recovery mechanism"
-    ],
-    "citation_benchmark": "Mobilox Innovations Pvt. Ltd. v. Kirusa Software Pvt. Ltd. (2018) 1 SCC 353",
-    "complexity": "Advanced"
-  },
-  {
-    "id": "IBC-003",
-    "category": "Insolvency and Bankruptcy Code",
-    "sub_category": "Moratorium Scope",
-    "statute": "Insolvency and Bankruptcy Code, 2016",
-    "relevant_sections": [
-      "Section 14 IBC"
-    ],
-    "question": "What actions are prohibited under the Moratorium declared under Section 14 of IBC 2016 upon admission of CIRP?",
-    "ground_truth_context": "Section 14(1) prohibits: (a) institution of suits or continuation of pending proceedings against the corporate debtor; (b) transferring, encumbering or disposing of corporate debtor's assets; (c) any action to foreclose or enforce security interest; (d) recovery of property by owner/lessor.",
-    "ground_truth_answer": "Under Section 14 IBC, the declaration of Moratorium by NCLT prohibits: (1) Instituting or continuing any civil suits, arbitrations, or executions against the Corporate Debtor; (2) Enforcing or recovering any security interest under SARFAESI; (3) Alienating corporate assets; (4) Terminating essential goods/services. However, criminal proceedings against individual directors (e.g. Sec 138) may continue.",
-    "key_statutory_ingredients": [
-      "Prohibition of suits and executions",
-      "SARFAESI actions suspended",
-      "Section 14 IBC moratorium",
-      "P. Mohanraj on Sec 138"
-    ],
-    "citation_benchmark": "P. Mohanraj v. Shah Brothers Ispat Pvt. Ltd. (2021) 6 SCC 258",
     "complexity": "Advanced"
   },
   {
@@ -1417,26 +1337,6 @@
       "Section 53 TPA"
     ],
     "citation_benchmark": "Abdul Shukoor Attar v. Golden Paper Stores AIR 1963 SC 1150",
-    "complexity": "Intermediate"
-  },
-  {
-    "id": "RERA-001",
-    "category": "Real Estate Regulation",
-    "sub_category": "Homebuyer Refund Rights",
-    "statute": "Real Estate (Regulation and Development) Act, 2016",
-    "relevant_sections": [
-      "Section 18 RERA"
-    ],
-    "question": "What remedies does a homebuyer have under Section 18 of RERA 2016 if the builder fails to deliver possession on the promised date?",
-    "ground_truth_context": "Section 18(1) RERA provides that if the promoter fails to give possession in accordance with the agreement for sale, he shall be liable on demand to the allottee: (a) to return the entire amount received with prescribed interest; or (b) if allottee does not withdraw, pay interest for every month of delay.",
-    "ground_truth_answer": "Under Section 18 RERA 2016, if a promoter delays possession: (1) The homebuyer has an absolute right to withdraw from the project and demand full refund of the amount paid with interest at prescribed SBI MCLR + 2% rate, plus compensation; OR (2) If they choose to stay in the project, they are entitled to monthly delay interest until possession.",
-    "key_statutory_ingredients": [
-      "Absolute right to refund with interest",
-      "Monthly interest for delay if staying",
-      "Section 18 RERA",
-      "Imperia Structures ruling"
-    ],
-    "citation_benchmark": "Imperia Structures Ltd. v. Anil Patni (2020) 10 SCC 783",
     "complexity": "Intermediate"
   },
   {

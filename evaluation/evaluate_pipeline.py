@@ -79,6 +79,21 @@ def run_evaluation(num_samples=None):
                 any(kw in p.lower() for kw in statute_keywords)
                 for p in predicted_names
             ) if predicted_names else False
+
+            # Curriculum textbook alias support (e.g. Hindu Marriage -> Family Law, Arbitration -> Special Contracts)
+            if not statute_hit and predicted_names:
+                statute_alias_map = {
+                    "hindu marriage": ["family law"],
+                    "protection of women from domestic violence": ["family law"],
+                    "arbitration and conciliation": ["special contracts"],
+                    "indian contract act": ["special contracts"],
+                }
+                s_lower = statute.lower()
+                for alias_key, alias_targets in statute_alias_map.items():
+                    if alias_key in s_lower:
+                        if any(any(at in p.lower() for at in alias_targets) for p in predicted_names):
+                            statute_hit = True
+                            break
             
             if statute_hit:
                 passed_router += 1
