@@ -122,10 +122,17 @@ def retrieve_statutory_context(
     alpha: float = 0.5,
 ) -> list[dict]:
     routed = route_query_to_statutes(query, max_statutes=max_statutes)
-    if not routed:
-        return []
 
-    target_pdfs = [r["pdf_name"] for r in routed]
+    # Check if this is a global fallback (router matched 0 keywords and returned all statutes)
+    is_global_fallback = not routed or any("fallback_all_statutes" in r.get("matched_keywords", []) for r in routed)
+
+    if is_global_fallback:
+        target_pdfs = []  # Empty list tells Weaviate to search ALL 27 PDFs with zero filters!
+        search_pool_size = max(candidate_pool_size, 30)  # Expand pool for global search
+    else:
+        target_pdfs = [r["pdf_name"] for r in routed]
+        search_pool_size = candidate_pool_size
+
     query_vector = get_embedding(query)
 
     raw_candidates = hybrid_search_statutes(
@@ -133,7 +140,7 @@ def retrieve_statutory_context(
         query_vector=query_vector,
         target_pdf_names=target_pdfs,
         alpha=alpha,
-        limit=candidate_pool_size,
+        limit=search_pool_size,
     )
 
     if not raw_candidates:

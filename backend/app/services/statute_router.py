@@ -28,7 +28,7 @@ def load_statute_catalog() -> dict:
         _KEYWORD_INDEX = {}
 
         for pdf_name, data in _STATUTE_CATALOG.items():
-            keywords = data.get("top_100_keywords", [])
+            keywords = data.get("top_250_keywords") or data.get("top_100_keywords", [])
 
             for kw in keywords:
                 kw_norm = kw.strip().lower()
@@ -111,24 +111,11 @@ def route_query_to_statutes(query: str, max_statutes: int = 5) -> list[dict]:
 
     query_clean = query.lower()
 
-    # 1. Check for specific explicit statute intents
-    explicit_matches = []
-    for item in EXPLICIT_INTENT_MAP:
-        for pat in item["patterns"]:
-            if re.search(pat, query_clean):
-                if item["pdf_name"] in _STATUTE_CATALOG:
-                    explicit_matches.append({
-                        "pdf_name": item["pdf_name"],
-                        "score": 100.0,
-                        "matched_keywords": [f"intent_{item['category']}"],
-                    })
-                break
+    # 1. Initialize scoring board across all catalogued statutes
+    pdf_scores: dict[str, float] = {pdf: 0.0 for pdf in _STATUTE_CATALOG.keys()}
+    pdf_matches: dict[str, list[str]] = {pdf: [] for pdf in _STATUTE_CATALOG.keys()}
 
-    if explicit_matches:
-        # If user explicitly asked for specific statutes (e.g. BNS only), route strictly to them
-        return explicit_matches[:max_statutes]
-
-    # 2. General keyword-based fallback routing
+    # 2. Data-driven N-Gram Scoring (Unigrams, Bigrams, Trigrams)
     words = re.findall(r"\b[a-z0-9][a-z0-9\-]*[a-z0-9]\b|\b[a-z0-9]\b", query_clean)
     query_phrases = set(words)
 
@@ -138,21 +125,29 @@ def route_query_to_statutes(query: str, max_statutes: int = 5) -> list[dict]:
     for i in range(len(words) - 2):
         query_phrases.add(f"{words[i]} {words[i + 1]} {words[i + 2]}")
 
-    pdf_scores: dict[str, float] = {pdf: 0.0 for pdf in _STATUTE_CATALOG.keys()}
-    pdf_matches: dict[str, list[str]] = {pdf: [] for pdf in _STATUTE_CATALOG.keys()}
-
     for phrase in query_phrases:
         if phrase in _KEYWORD_INDEX:
             matching_pdfs = _KEYWORD_INDEX[phrase]
             phrase_length = len(phrase.split())
-
             weight = 1.0 if phrase_length == 1 else (2.5 if phrase_length == 2 else 4.0)
 
             for pdf in matching_pdfs:
                 pdf_scores[pdf] += weight
-
                 if phrase not in pdf_matches[pdf]:
                     pdf_matches[pdf].append(phrase)
+
+    # 3. Explicit Intent Regex Matching as an Accelerator (+8.0 Soft Boost)
+    # Never early-exit or skip N-grams: combine both signals fairly on the same scoreboard!
+    for item in EXPLICIT_INTENT_MAP:
+        for pat in item["patterns"]:
+            if re.search(pat, query_clean):
+                pdf = item["pdf_name"]
+                if pdf in pdf_scores:
+                    pdf_scores[pdf] += 8.0
+                    category_tag = f"intent_{item.get('category', 'general')}"
+                    if category_tag not in pdf_matches[pdf]:
+                        pdf_matches[pdf].append(category_tag)
+                break
 
     scored_candidates = [
         {
@@ -169,20 +164,15 @@ def route_query_to_statutes(query: str, max_statutes: int = 5) -> list[dict]:
     selected = scored_candidates[:max_statutes]
 
     if not selected:
-        default_statutes = [
-            "THE CONSTITUTION OF INDIA.pdf",
-            "Bharatiya Nyaya Sanhita, 2023.pdf",
-            "THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023.pdf",
-            "Code of Civil Procedure & Limitation Act.pdf",
-        ]
-
+        # Global fallback: Zero keywords/intents matched, meaning we don't know where the chunk is.
+        # Include ALL catalogued statutes so Weaviate searches the entire legal library without filters!
         selected = [
             {
                 "pdf_name": pdf,
-                "score": 1.0,
-                "matched_keywords": ["fallback_general_statute"],
+                "score": 0.0,
+                "matched_keywords": ["fallback_all_statutes"],
             }
-            for pdf in default_statutes[:max_statutes]
+            for pdf in _STATUTE_CATALOG.keys()
         ]
 
     return selected
