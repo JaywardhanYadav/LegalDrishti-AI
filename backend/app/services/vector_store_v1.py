@@ -14,6 +14,7 @@ def get_weaviate_client() -> Generator[weaviate.WeaviateClient, None, None]:
         host="127.0.0.1",
         port=8080,
         grpc_port=50051,
+        skip_init_checks=True,
     )
     try:
         yield client
@@ -280,7 +281,7 @@ def ensure_statute_collection_exists() -> None:
 def hybrid_search_statutes(
     query_text: str,
     query_vector: list[float],
-    target_pdf_names: list[str],
+    target_pdf_names: list[str] | None = None,
     alpha: float = 0.5,
     limit: int = 20,
 ) -> list[dict]:
