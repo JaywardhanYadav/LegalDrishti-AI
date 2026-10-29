@@ -1,0 +1,17 @@
+{
+  "benchmark_timestamp": "2026-10-29 23:31:27",
+  "total_queries_evaluated": 1,
+  "metrics": {
+    "hit_rate_at_5": 1.0,
+    "mrr_at_5": 1.0,
+    "recall_at_5": 0.5,
+    "ndcg_at_5": 1.0
+  },
+  "stage_profiling_ms": {
+    "dense_search": 4924.52,
+    "bm25_search": 17.15,
+    "rrf_fusion": 0.25,
+    "cross_encoder_rerank": 3867.61,
+    "total_retrieval_ms": 8809.52
+  }
+}

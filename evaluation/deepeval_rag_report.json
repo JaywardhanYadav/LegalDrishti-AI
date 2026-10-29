@@ -1,0 +1,12 @@
+{
+  "benchmark_timestamp": "2026-10-29 23:36:00",
+  "evaluator_mode": "Groq (qwen/qwen3.8-27b)",
+  "total_queries_evaluated": 1,
+  "metrics": {
+    "faithfulness": 0.6,
+    "answer_relevancy": 0.95,
+    "contextual_precision": 0.8,
+    "contextual_recall": 0.5,
+    "contextual_relevancy": 0.2
+  }
+}

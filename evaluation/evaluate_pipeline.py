@@ -37,19 +37,25 @@ def run_evaluation(num_samples=None):
     print(f"🏛️  LegalDrishti AI Evaluation Runner (Scenarios: {total_scenarios})")
     print(f"=======================================================\n")
 
-    # Try importing Statute Router (prefer lightweight direct module)
+    # Try importing Hybrid Retrieval service (V2 fine-tuned or V1)
+    retrieval_fn = None
+    retrieval_version = None
     try:
-        from app.services.statute_router import route_query_to_statutes  # type: ignore
-        has_router = True
+        from app.services.retrieval_v2 import retrieve_statutory_context_v2
+        retrieval_fn = retrieve_statutory_context_v2
+        retrieval_version = "V2 (Fine-Tuned Octen-0.6B + FlashRank)"
     except Exception:
         try:
-            from app.services.retrieval import route_query_to_statutes  # type: ignore
-            has_router = True
+            from app.services.retrieval_v1 import retrieve_statutory_context
+            retrieval_fn = retrieve_statutory_context
+            retrieval_version = "V1 (OpenAI + FlashRank)"
         except Exception as e:
-            print(f"⚠️  Note: Backend modules not loaded ({e}). Running in standalone benchmark verification mode.\n")
-            has_router = False
+            print(f"ℹ️  Backend retrieval modules not loaded or offline ({e}). Running in dataset verification mode.\n")
 
-    passed_router = 0
+    if retrieval_fn:
+        print(f"🚀 Using Global Hybrid Retrieval Pipeline: {retrieval_version}\n")
+
+    retrieval_hits = 0
     categories = {}
     complexities = {"Basic": 0, "Intermediate": 0, "Advanced": 0}
 
@@ -69,38 +75,25 @@ def run_evaluation(num_samples=None):
         print(f"     Q: {item['question'][:75]}...")
         print(f"     Target Statute: {statute} | Sections: {', '.join(sections)}")
 
-        if has_router:
-            predicted_statutes = route_query_to_statutes(item["question"])
-            predicted_names = [p.get("pdf_name", "") for p in predicted_statutes if isinstance(p, dict)]
-            
-            # Check if any statute or key keyword is present in predicted filenames
-            statute_keywords = [w.lower() for w in statute.split() if len(w) > 3]
-            statute_hit = any(
-                any(kw in p.lower() for kw in statute_keywords)
-                for p in predicted_names
-            ) if predicted_names else False
+        if retrieval_fn:
+            try:
+                top_chunks = retrieval_fn(item["question"], top_k=5)
+                retrieved_pdfs = [c.get("pdf_name", "") for c in top_chunks if isinstance(c, dict)]
 
-            # Curriculum textbook alias support (e.g. Hindu Marriage -> Family Law, Arbitration -> Special Contracts)
-            if not statute_hit and predicted_names:
-                statute_alias_map = {
-                    "hindu marriage": ["family law"],
-                    "protection of women from domestic violence": ["family law"],
-                    "arbitration and conciliation": ["special contracts"],
-                    "indian contract act": ["special contracts"],
-                }
-                s_lower = statute.lower()
-                for alias_key, alias_targets in statute_alias_map.items():
-                    if alias_key in s_lower:
-                        if any(any(at in p.lower() for at in alias_targets) for p in predicted_names):
-                            statute_hit = True
-                            break
-            
-            if statute_hit:
-                passed_router += 1
-                status = f"✅ ROUTER MATCH ({predicted_names[0]})"
-            else:
-                status = f"ℹ️ Routed to: {predicted_names[:2]}"
-            print(f"     {status}")
+                statute_keywords = [w.lower() for w in statute.split() if len(w) > 3]
+                statute_hit = any(
+                    any(kw in p.lower() for kw in statute_keywords)
+                    for p in retrieved_pdfs
+                ) if retrieved_pdfs else False
+
+                if statute_hit:
+                    retrieval_hits += 1
+                    top_source = retrieved_pdfs[0] if retrieved_pdfs else "N/A"
+                    print(f"     ✅ RETRIEVAL HIT (Top: {top_source})")
+                else:
+                    print(f"     ℹ️ Retrieved: {retrieved_pdfs[:3]}")
+            except Exception as err:
+                print(f"     ⚠️ Retrieval error: {err}")
 
         print("-" * 55)
 
@@ -117,8 +110,8 @@ def run_evaluation(num_samples=None):
     for cat, count in categories.items():
         print(f"  - {cat:32s}: {count:2d} scenarios")
 
-    if has_router:
-        print(f"\n🎯 Statute Router Accuracy: {passed_router}/{total_scenarios} ({passed_router/total_scenarios*100:.1f}%)")
+    if retrieval_fn:
+        print(f"\n🎯 Statutory Retrieval Hit Rate @ 5: {retrieval_hits}/{total_scenarios} ({retrieval_hits/total_scenarios*100:.1f}%)")
 
     print("\n✅ Golden dataset verification completed successfully.\n")
 
