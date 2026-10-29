@@ -1,12 +1,20 @@
+import sys
 import re
 from pathlib import Path
+from typing import Any
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from pypdf import PdfReader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.case_document import CaseDocument
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
-from app.services.embeddings import get_embeddings_batch
-from app.services.vector_store import store_chunk_vector
+from app.services.embeddings_v1 import get_embeddings_batch
+from app.services.vector_store_v1 import store_chunk_vector
 
 PAGE_MARKER_REGEX = re.compile(r"---\s*\[Page\s*(\d+)\]\s*---", re.IGNORECASE)
 
@@ -488,3 +496,207 @@ async def ingest_document_chunks(
     await session.commit()
 
     return len(chunks_with_meta)
+
+
+async def ingest_document_chunks_v2(
+    document_id: int,
+    session: AsyncSession,
+    generate_embeddings: bool = True,
+) -> int:
+    """
+    V2 Document Ingestion:
+    Uses the exact same common legal chunking logic, but routes post-chunking vectors
+    to the V2 local 1024-D embedding pipeline (Octen-0.6B) and Weaviate LegalDocumentChunk_V2.
+    """
+    from app.services.embeddings_v2 import get_embeddings_batch_v2
+    from app.services.vector_store_v2 import store_chunk_vector_v2
+
+    doc_query = select(Document).where(Document.id == document_id)
+    doc_result = await session.execute(doc_query)
+    doc = doc_result.scalar_one_or_none()
+
+    if doc is None or not doc.extracted_text or not doc.extracted_text.strip():
+        return 0
+
+    case_query = select(CaseDocument.case_id).where(
+        CaseDocument.document_id == document_id
+    )
+    case_result = await session.execute(case_query)
+    case_id = case_result.scalar_one_or_none()
+
+    # Reuse COMMON contextual semantic chunking
+    if is_statutory_text(doc.extracted_text):
+        chunks_with_meta = split_legal_statute_text(doc.extracted_text, statute_name=doc.title)
+    else:
+        chunks_with_meta = split_legal_document_text(doc.extracted_text, document_title=doc.title)
+
+    if not chunks_with_meta:
+        return 0
+
+    chunk_texts = [chunk[0] for chunk in chunks_with_meta]
+
+    vectors: list[list[float]] | None = None
+    if generate_embeddings:
+        vectors = get_embeddings_batch_v2(chunk_texts)
+
+    for idx, (chunk_text, page_num, sec_heading) in enumerate(chunks_with_meta):
+        weaviate_uuid = None
+        if generate_embeddings and vectors:
+            weaviate_uuid = store_chunk_vector_v2(
+                chunk_text=chunk_text,
+                vector=vectors[idx],
+                document_id=doc.id,
+                user_id=doc.user_id,
+                page_number=page_num,
+                chunk_index=idx,
+                case_id=case_id,
+            )
+
+        db_chunk = DocumentChunk(
+            document_id=doc.id,
+            chunk_index=idx,
+            content=chunk_text,
+            token_count=estimate_token_count(chunk_text),
+            page_number=page_num,
+            section_heading=sec_heading,
+            vector_id=weaviate_uuid,
+        )
+        session.add(db_chunk)
+
+    doc.processing_status = "indexed_v2" if generate_embeddings else "chunked"
+    session.add(doc)
+
+    await session.commit()
+
+    return len(chunks_with_meta)
+
+
+def parse_document_for_v2(
+    file_path: str | Path,
+    max_pages: int | None = None,
+) -> tuple[str, int]:
+    """
+    V2 Document Parser:
+    Extracts text from PDF, DOCX, or TXT preserving '--- [Page X] ---' markers.
+    Fast, high-fidelity native statutory parser.
+    """
+    path = Path(file_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Document file not found at: {path}")
+
+    suffix = path.suffix.lower()
+
+    if suffix == ".pdf":
+        reader = PdfReader(str(path))
+        total_pages = len(reader.pages)
+        pages_to_process = min(total_pages, max_pages) if max_pages and max_pages > 0 else total_pages
+
+        page_segments: list[str] = []
+        for page_idx in range(pages_to_process):
+            page_num = page_idx + 1
+            try:
+                page_text = reader.pages[page_idx].extract_text() or ""
+                if page_text.strip():
+                    page_segments.append(f"--- [Page {page_num}] ---\n{page_text.strip()}")
+            except Exception:
+                continue
+
+        full_text = "\n\n".join(page_segments)
+        return full_text, total_pages
+
+    else:
+        # Fallback to extraction service for DOCX, TXT, images
+        from app.services.extraction import extract_document_text
+        return extract_document_text(path)
+
+
+def parse_and_chunk_document_v2(
+    file_path: str | Path,
+    document_title: str = "",
+    max_pages: int | None = None,
+    max_chunk_tokens: int = 600,
+) -> list[dict[str, Any]]:
+    """
+    End-to-End V2 Pipeline:
+    1. Parses document directly from file (extracting pages & markers).
+    2. Auto-detects statutory vs general legal document.
+    3. Runs section-aware semantic chunking with sticky breadcrumb header injection.
+    
+    Returns:
+        List of structured chunk dictionaries.
+    """
+    path = Path(file_path)
+    title = document_title or path.stem.replace("_", " ").title()
+
+    full_text, total_pages = parse_document_for_v2(path, max_pages=max_pages)
+    if not full_text or not full_text.strip():
+        return []
+
+    is_stat = is_statutory_text(full_text)
+    if is_stat:
+        chunk_tuples = split_legal_statute_text(full_text, statute_name=title, max_chunk_tokens=max_chunk_tokens)
+    else:
+        chunk_tuples = split_legal_document_text(full_text, document_title=title, max_tokens=max_chunk_tokens)
+
+    all_chunks: list[dict[str, Any]] = []
+    for idx, (chunk_text, page_num, sec_heading) in enumerate(chunk_tuples, start=1):
+        all_chunks.append({
+            "chunk_index": idx,
+            "chunk_text": chunk_text,
+            "page_number": page_num,
+            "section_heading": sec_heading,
+            "token_count": estimate_token_count(chunk_text),
+            "char_count": len(chunk_text),
+            "file_name": path.name,
+            "total_pages": total_pages,
+            "is_statutory": is_stat,
+        })
+
+    return all_chunks
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Parse and chunk legal documents using V2 Section-Aware Legal Chunker"
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        default="Legal Pdfs/the negotiable instruments act, 1881.pdf",
+        help="Path to PDF or legal document to parse and chunk",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=5,
+        help="Max pages to parse (default: 5)",
+    )
+
+    args = parser.parse_args()
+
+    target_file = Path(args.file)
+    if not target_file.is_file():
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        target_file = project_root / args.file
+
+    print(f"\n=======================================================")
+    print(f" V2 Legal Document Parser + Section-Aware Chunker Test")
+    print(f"=======================================================")
+    print(f"File:      {target_file}")
+    print(f"Max Pages: {args.max_pages}")
+    print(f"-------------------------------------------------------")
+
+    chunks = parse_and_chunk_document_v2(target_file, max_pages=args.max_pages)
+    print(f"[Success] Generated {len(chunks)} V2 semantic chunks!\n")
+
+    preview_count = min(3, len(chunks))
+    for i in range(preview_count):
+        c = chunks[i]
+        print(f"--- Chunk #{c['chunk_index']} (Page {c['page_number']} | Heading: '{c['section_heading']}' | Tokens: ~{c['token_count']}) ---")
+        lines = c['chunk_text'].splitlines()
+        preview = "\n".join(lines[:7])
+        if len(lines) > 7:
+            preview += f"\n... [{len(lines) - 7} more lines]"
+        print(preview + "\n")
