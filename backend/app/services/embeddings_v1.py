@@ -59,9 +59,8 @@ def get_embeddings_batch(
                 input=chunks,
                 model=model,
             )
-
-        batch_vectors = [item.embedding for item in response.data]
-        all_embeddings.extend(batch_vectors)
+            batch_vectors = [item.embedding for item in response.data]
+            all_embeddings.extend(batch_vectors)
 
         return all_embeddings
 
