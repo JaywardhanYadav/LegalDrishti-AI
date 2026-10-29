@@ -2,20 +2,17 @@
 import hashlib
 import re
 import uuid
+from typing import Any
 from flashrank import Ranker, RerankRequest
 from openai import OpenAI
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import PROJECT_ROOT, get_settings
 from app.core.redis_client import get_cache, set_cache
-from app.models.document import Document
-from app.services.embeddings import get_embedding
-from app.services.vector_store import (
+from app.services.embeddings_v1 import get_embedding
+from app.services.decision_router import decide_query_action, MultiPipelineDecision
+from app.services.vector_store_v1 import (
     hybrid_search_chunks,
     hybrid_search_statutes,
 )
-from app.services.statute_router import route_query_to_statutes
 
 MODELS_CACHE_DIR = PROJECT_ROOT / "storage" / "models"
 _ranker: Ranker | None = None
@@ -65,9 +62,9 @@ def rerank_chunks(
 async def retrieve_case_context(
     query: str,
     user_id: int,
-    session: AsyncSession,
+    session: Any = None,
     case_id: int | None = None,
-    candidate_pool_size: int = 20,
+    candidate_pool_size: int = 40,
     top_k: int = 5,
     alpha: float = 0.5,
 ) -> list[dict]:
@@ -116,23 +113,16 @@ async def retrieve_case_context(
 
 def retrieve_statutory_context(
     query: str,
-    max_statutes: int = 5,
-    candidate_pool_size: int = 20,
+    target_statutes: list[str] | None = None,
+    candidate_pool_size: int = 40,
     top_k: int = 5,
     alpha: float = 0.5,
 ) -> list[dict]:
-    routed = route_query_to_statutes(query, max_statutes=max_statutes)
-
-    # Check if this is a global fallback (router matched 0 keywords and returned all statutes)
-    is_global_fallback = not routed or any("fallback_all_statutes" in r.get("matched_keywords", []) for r in routed)
-
-    if is_global_fallback:
-        target_pdfs = []  # Empty list tells Weaviate to search ALL 27 PDFs with zero filters!
-        search_pool_size = max(candidate_pool_size, 30)  # Expand pool for global search
-    else:
-        target_pdfs = [r["pdf_name"] for r in routed]
-        search_pool_size = candidate_pool_size
-
+    """
+    V1 Statutory Retrieval:
+    Pure end-to-end dense + BM25 hybrid search across all statutes with zero regex / n-gram routing.
+    """
+    target_pdfs = target_statutes or []
     query_vector = get_embedding(query)
 
     raw_candidates = hybrid_search_statutes(
@@ -140,7 +130,7 @@ def retrieve_statutory_context(
         query_vector=query_vector,
         target_pdf_names=target_pdfs,
         alpha=alpha,
-        limit=search_pool_size,
+        limit=candidate_pool_size,
     )
 
     if not raw_candidates:
@@ -277,20 +267,32 @@ def check_conversational_or_meta_query(query: str) -> str | None:
 async def generate_grounded_legal_answer(
     query: str,
     user_id: int,
-    session: AsyncSession,
+    session: Any = None,
     case_id: int | None = None,
-    candidate_pool_size: int = 20,
+    candidate_pool_size: int = 40,
     top_k: int = 5,
     alpha: float = 0.5,
     session_id: int | None = None,
 ) -> dict:
-    # 1. Fast conversational / meta-intent check (Zero vector latency, 0 token waste)
-    quick_reply = check_conversational_or_meta_query(query)
-    if quick_reply:
+    # 0. Triage & Route with Jev Multi-Pipeline Decision Engine
+    has_vault = bool(case_id or session_id)
+    decision = decide_query_action(query=query, has_vault_documents=has_vault)
+
+    # Check if pure conversational/greeting without any active data pipeline
+    is_pure_conversational = decision.is_conversational and not (
+        decision.search_statutes or decision.search_vault or decision.search_web
+    )
+
+    if is_pure_conversational:
+        clarification_msg = decision.suggested_clarification or (
+            "Greetings. I am LegalDrishti AI. Please provide the details of your legal issue, "
+            "relevant facts, or specific statutory provisions you wish to analyze."
+        )
         return {
-            "answer": quick_reply,
+            "answer": clarification_msg,
             "sources": [],
             "grounded": True,
+            "decision": decision.model_dump(),
         }
 
     query_hash = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:16]
@@ -336,7 +338,7 @@ async def generate_grounded_legal_answer(
             pass
 
     case_chunks: list[dict] = []
-    if case_id is not None:
+    if decision.search_vault and case_id is not None:
         case_chunks = await retrieve_case_context(
             query=query,
             user_id=user_id,
@@ -347,13 +349,14 @@ async def generate_grounded_legal_answer(
             alpha=alpha,
         )
 
-    statute_chunks = retrieve_statutory_context(
-        query=query,
-        max_statutes=5,
-        candidate_pool_size=candidate_pool_size,
-        top_k=top_k,
-        alpha=alpha,
-    )
+    statute_chunks: list[dict] = []
+    if decision.search_statutes:
+        statute_chunks = retrieve_statutory_context(
+            query=query,
+            candidate_pool_size=candidate_pool_size,
+            top_k=top_k,
+            alpha=alpha,
+        )
 
     all_chunks = session_chunks + case_chunks + statute_chunks
 
@@ -369,25 +372,22 @@ async def generate_grounded_legal_answer(
     context_text = format_dual_stream_context(case_chunks, statute_chunks, session_chunks=session_chunks)
 
     system_prompt = (
-        "You are LegalDrishti AI, an authoritative, precise legal intelligence assistant specializing in Indian law.\n"
-        "Provide direct, professional, and meaningful legal analysis for all inquiries regarding Indian law, "
-        "constitutional principles, statutory provisions, legal definitions, procedures, or case briefs.\n\n"
-        "CRITICAL INSTRUCTIONS & EDITORIAL CONSTRAINTS:\n"
-        "1. OBJECTIVE & AUTHORITATIVE VOICE:\n"
-        "   - Synthesize all legal principles, statutory sections, and judicial doctrines in an objective third-person voice.\n"
-        "   - Never use phrases like 'according to the provided text', 'based on the documents', or 'supplied records'.\n\n"
-        "2. ADAPTABLE, STRUCTURED FORMATTING:\n"
-        "   - For specific legal questions, criminal offenses, commercial disputes, or statutory provisions:\n"
-        "     Use headings: Executive Summary, Key Highlights (bullet points), Comparison Table (e.g. IPC vs BNS or Statute vs Legal Effect where applicable), and Procedural and Evidentiary Demarcation.\n"
-        "   - For foundational, general, or constitutional overviews (e.g. 'What is Indian Law', Fundamental Rights, Constitutional Law):\n"
-        "     Provide a structured, comprehensive legal explanation with clear headings (Constitutional Foundation, Key Sources of Law, Substantive vs. Procedural Framework, Key Enactments).\n\n"
-        "3. STATUTORY INTERPLAY & HIGH PRECISION:\n"
-        "   - Maintain clear demarcations between substantive penal law (BNS: offences and punishments), "
-        "criminal procedure (BNSS: FIR, arrest, bail, investigation, trial), and evidentiary rules (BSA: proof and electronic admissibility).\n"
-        "   - Cite exact sections and subsections where relevant (e.g. Section 103(2) BNS, Section 69 BNS, Section 482 BNSS, Section 138 NI Act).\n"
-        "   - Note temporal applicability: Article 20(1) guarantees non-retrospectivity (acts committed before 1 July 2024 remain governed by IPC).\n\n"
-        "4. ETHICAL BOUNDARY:\n"
-        "   - Provide objective legal intelligence. Never state 'I advise you as your advocate'.\n"
+        "You are LegalDrishti AI (Version 1 - Cloud Retrieval Engine), an advanced AI Legal Intelligence system specializing in Indian law.\n"
+        "You are an artificial intelligence platform designed to synthesize and analyze verified statutory laws, Bare Acts, and legal provisions. "
+        "You are NOT a court, judge, advocate, lawyer, or law firm, and you do not provide legal representation.\n\n"
+        "CORE OPERATIONAL MANDATE & 0% HALLUCINATION CONSTRAINTS:\n"
+        "1. STRICT STATUTORY ANCHORING (0% HALLUCINATION):\n"
+        "   - Base your legal analysis strictly and exclusively on the available statutory provisions and case records provided below.\n"
+        "   - Never invent, assume, extrapolate, or hallucinate statutory sections, penalties, limitations, or legal procedures not substantiated by the legal text.\n"
+        "   - If the retrieved context does not contain the specific statutory section or sufficient facts to resolve the query, clearly state that the indexed statute repository does not disclose the necessary provisions rather than guessing.\n\n"
+        "2. OBJECTIVE & FACTUAL VOICE:\n"
+        "   - Synthesize legal principles, definitions, and procedures in an objective, professional, and third-person tone.\n"
+        "   - Never say 'I advise you', 'as your advocate', 'according to the provided text', or 'based on supplied files'. Provide direct statutory intelligence.\n\n"
+        "3. PRECISE STATUTORY CITATION:\n"
+        "   - Cite exact Act titles, Sections, Sub-sections, and Clauses wherever applicable (e.g., Section 138 proviso (b) of the Negotiable Instruments Act, 1881; Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023).\n"
+        "   - Maintain clear demarcations between Substantive Penal Law (BNS/IPC), Criminal Procedure (BNSS/CrPC), and Law of Evidence (BSA/IEA).\n\n"
+        "4. STRUCTURED BREAKDOWN:\n"
+        "   - Present answers with structured, clear headings: Statutory Overview, Core Ingredients & Limitations, Statutory Exceptions & Procedural Application."
     )
 
     user_prompt = (
@@ -433,6 +433,7 @@ async def generate_grounded_legal_answer(
         "answer": answer_text.strip(),
         "sources": sources,
         "grounded": True,
+        "decision": decision.model_dump(),
     }
 
     # Cache response for 2 hours (7200 seconds) only if it is a genuine legal answer
@@ -445,9 +446,9 @@ async def generate_grounded_legal_answer(
 async def stream_grounded_legal_answer(
     query: str,
     user_id: int,
-    session: AsyncSession,
+    session: Any = None,
     case_id: int | None = None,
-    candidate_pool_size: int = 20,
+    candidate_pool_size: int = 40,
     top_k: int = 5,
     alpha: float = 0.5,
     session_id: int | None = None,
@@ -456,11 +457,23 @@ async def stream_grounded_legal_answer(
     Asynchronous generator streaming the legal answer word-by-word
     over Server-Sent Events (SSE).
     """
-    quick_reply = check_conversational_or_meta_query(query)
-    if quick_reply:
+    # 0. Triage & Route with Jev Multi-Pipeline Decision Engine
+    has_vault = bool(case_id or session_id)
+    decision = decide_query_action(query=query, has_vault_documents=has_vault)
+
+    # Check if pure conversational/greeting without any active data pipeline
+    is_pure_conversational = decision.is_conversational and not (
+        decision.search_statutes or decision.search_vault or decision.search_web
+    )
+
+    if is_pure_conversational:
+        clarification_msg = decision.suggested_clarification or (
+            "Greetings. I am LegalDrishti AI. Please provide the details of your legal issue, "
+            "relevant facts, or specific statutory provisions you wish to analyze."
+        )
         yield {"type": "sources", "sources": []}
-        yield {"type": "content", "delta": quick_reply}
-        yield {"type": "done", "full_answer": quick_reply, "sources": []}
+        yield {"type": "content", "delta": clarification_msg}
+        yield {"type": "done", "full_answer": clarification_msg, "sources": []}
         return
 
     query_hash = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:16]
@@ -507,7 +520,7 @@ async def stream_grounded_legal_answer(
             pass
 
     case_chunks: list[dict] = []
-    if case_id is not None:
+    if decision.search_vault and case_id is not None:
         case_chunks = await retrieve_case_context(
             query=query,
             user_id=user_id,
@@ -518,13 +531,14 @@ async def stream_grounded_legal_answer(
             alpha=alpha,
         )
 
-    statute_chunks = retrieve_statutory_context(
-        query=query,
-        max_statutes=5,
-        candidate_pool_size=candidate_pool_size,
-        top_k=top_k,
-        alpha=alpha,
-    )
+    statute_chunks: list[dict] = []
+    if decision.search_statutes:
+        statute_chunks = retrieve_statutory_context(
+            query=query,
+            candidate_pool_size=candidate_pool_size,
+            top_k=top_k,
+            alpha=alpha,
+        )
 
     all_chunks = session_chunks + case_chunks + statute_chunks
 
@@ -558,25 +572,22 @@ async def stream_grounded_legal_answer(
     context_text = format_dual_stream_context(case_chunks, statute_chunks, session_chunks=session_chunks)
 
     system_prompt = (
-        "You are LegalDrishti AI, an authoritative, precise legal intelligence assistant specializing in Indian law.\n"
-        "Provide direct, professional, and meaningful legal analysis for all inquiries regarding Indian law, "
-        "constitutional principles, statutory provisions, legal definitions, procedures, or case briefs.\n\n"
-        "CRITICAL INSTRUCTIONS & EDITORIAL CONSTRAINTS:\n"
-        "1. OBJECTIVE & AUTHORITATIVE VOICE:\n"
-        "   - Synthesize all legal principles, statutory sections, and judicial doctrines in an objective third-person voice.\n"
-        "   - Never use phrases like 'according to the provided text', 'based on the documents', or 'supplied records'.\n\n"
-        "2. ADAPTABLE, STRUCTURED FORMATTING:\n"
-        "   - For specific legal questions, criminal offenses, commercial disputes, or statutory provisions:\n"
-        "     Use headings: Executive Summary, Key Highlights (bullet points), Comparison Table (e.g. IPC vs BNS or Statute vs Legal Effect where applicable), and Procedural and Evidentiary Demarcation.\n"
-        "   - For foundational, general, or constitutional overviews (e.g. 'What is Indian Law', Fundamental Rights, Constitutional Law):\n"
-        "     Provide a structured, comprehensive legal explanation with clear headings (Constitutional Foundation, Key Sources of Law, Substantive vs. Procedural Framework, Key Enactments).\n\n"
-        "3. STATUTORY INTERPLAY & HIGH PRECISION:\n"
-        "   - Maintain clear demarcations between substantive penal law (BNS: offences and punishments), "
-        "criminal procedure (BNSS: FIR, arrest, bail, investigation, trial), and evidentiary rules (BSA: proof and electronic admissibility).\n"
-        "   - Cite exact sections and subsections where relevant (e.g. Section 103(2) BNS, Section 69 BNS, Section 482 BNSS, Section 138 NI Act).\n"
-        "   - Note temporal applicability: Article 20(1) guarantees non-retrospectivity (acts committed before 1 July 2024 remain governed by IPC).\n\n"
-        "4. ETHICAL BOUNDARY:\n"
-        "   - Provide objective legal intelligence. Never state 'I advise you as your advocate'.\n"
+        "You are LegalDrishti AI (Version 1 - Cloud Retrieval Engine), an advanced AI Legal Intelligence system specializing in Indian law.\n"
+        "You are an artificial intelligence platform designed to synthesize and analyze verified statutory laws, Bare Acts, and legal provisions. "
+        "You are NOT a court, judge, advocate, lawyer, or law firm, and you do not provide legal representation.\n\n"
+        "CORE OPERATIONAL MANDATE & 0% HALLUCINATION CONSTRAINTS:\n"
+        "1. STRICT STATUTORY ANCHORING (0% HALLUCINATION):\n"
+        "   - Base your legal analysis strictly and exclusively on the available statutory provisions and case records provided below.\n"
+        "   - Never invent, assume, extrapolate, or hallucinate statutory sections, penalties, limitations, or legal procedures not substantiated by the legal text.\n"
+        "   - If the retrieved context does not contain the specific statutory section or sufficient facts to resolve the query, clearly state that the indexed statute repository does not disclose the necessary provisions rather than guessing.\n\n"
+        "2. OBJECTIVE & FACTUAL VOICE:\n"
+        "   - Synthesize legal principles, definitions, and procedures in an objective, professional, and third-person tone.\n"
+        "   - Never say 'I advise you', 'as your advocate', 'according to the provided text', or 'based on supplied files'. Provide direct statutory intelligence.\n\n"
+        "3. PRECISE STATUTORY CITATION:\n"
+        "   - Cite exact Act titles, Sections, Sub-sections, and Clauses wherever applicable (e.g., Section 138 proviso (b) of the Negotiable Instruments Act, 1881; Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023).\n"
+        "   - Maintain clear demarcations between Substantive Penal Law (BNS/IPC), Criminal Procedure (BNSS/CrPC), and Law of Evidence (BSA/IEA).\n\n"
+        "4. STRUCTURED BREAKDOWN:\n"
+        "   - Present answers with structured, clear headings: Statutory Overview, Core Ingredients & Limitations, Statutory Exceptions & Procedural Application."
     )
 
     user_prompt = (
@@ -611,3 +622,7 @@ async def stream_grounded_legal_answer(
         set_cache(cache_key, {"answer": full_answer_text, "sources": sources, "grounded": True}, expire_seconds=7200)
 
     yield {"type": "done", "full_answer": full_answer_text, "sources": sources}
+
+
+# Version 1 Alias
+generate_grounded_legal_answer_v1 = generate_grounded_legal_answer
