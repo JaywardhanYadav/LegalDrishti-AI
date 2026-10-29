@@ -20,8 +20,8 @@ from app.schemas.case import (
     CaseQAResponse,
     CaseSourceChunk,
 )
-from app.services.retrieval import generate_grounded_legal_answer
-from app.services.vector_store import delete_chunks_by_case, delete_all_chunks_by_user
+from app.services.retrieval_v1 import generate_grounded_legal_answer
+from app.services.vector_store_v1 import delete_chunks_by_case, delete_all_chunks_by_user
 
 
 

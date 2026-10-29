@@ -25,7 +25,7 @@ from app.schemas.chat import (
 from app.schemas.research import LegalResearchRequest
 from app.services.extraction import extract_document_text
 from app.services.research import perform_legal_research
-from app.services.retrieval import generate_grounded_legal_answer, stream_grounded_legal_answer
+from app.services.retrieval_v1 import generate_grounded_legal_answer, stream_grounded_legal_answer
 
 chat_router = APIRouter(prefix="/chat", tags=["Chat & Consultations"])
 

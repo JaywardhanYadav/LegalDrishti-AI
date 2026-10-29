@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.api.router import api_router
+from app.api.v2.router import api_router_v2
 from fastapi.middleware.cors import CORSMiddleware
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -74,6 +75,7 @@ app.add_middleware(
 
 
 app.include_router(api_router)
+app.include_router(api_router_v2)
 
 @app.get("/health",tags=["system"])
 async def health_check() -> dict[str,str]:

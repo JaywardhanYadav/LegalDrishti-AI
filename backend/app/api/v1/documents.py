@@ -13,8 +13,8 @@ from app.models.case_document import CaseDocument
 from app.models.document import Document
 from app.models.user import User
 from app.services.extraction import extract_document_text
-from app.services.chunking import ingest_document_chunks
-from app.services.vector_store import delete_chunks_by_document
+from app.services.chunking_v2 import ingest_document_chunks
+from app.services.vector_store_v1 import delete_chunks_by_document
 from app.schemas.document import (
     DocumentDetailResponse,
     DocumentListResponse,

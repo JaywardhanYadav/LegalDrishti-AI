@@ -139,7 +139,7 @@ class CaseListResponse(BaseModel):
 
 class CaseQARequest(BaseModel):
     query: str = Field(..., min_length=3, description="Legal question or counter-inquiry")
-    candidate_pool_size: int = Field(default=20, ge=5, le=50)
+    candidate_pool_size: int = Field(default=40, ge=5, le=50)
     top_k: int = Field(default=5, ge=1, le=10)
     alpha: float = Field(default=0.5, ge=0.0, le=1.0)
 
