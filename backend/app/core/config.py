@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     tavily_api_key: str = Field(default="", repr=False)
     tavily_base_url: str = "https://api.tavily.com"
 
+    typesafe_api_key: str = Field(default="", repr=False)
+    groq_api_key: str = Field(default="", repr=False)
+    groq_judge_model: str = "llama-3.3-70b-versatile"
+
     llm_provider: str = "openai"
     openai_api_key: str = Field(default="", repr=False)
     openai_model: str = "gpt-5.6-terra"

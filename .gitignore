@@ -37,9 +37,12 @@ storage/
 vault/
 artifacts/
 temp/
-tmp/
 Artifact/
 artifacts/
+models/
+backend/models/
+*.safetensors
+*.bin
 
 
 
@@ -52,6 +55,8 @@ pnpm-debug.log*
 
 
 .venv/
+**/.venv/
+backend/.venv/
 venv/
 ENV/
 env/
@@ -82,3 +87,4 @@ coverage/
 .DS_Store
 Thumbs.db
 desktop.ini
+.venv-gpu/
