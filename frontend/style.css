@@ -482,6 +482,73 @@ body {
   gap: 14px;
 }
 
+/* ================= DUAL-TRACK VERSION SWITCHER ================= */
+.version-toggle-badge {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease;
+}
+
+.version-toggle-badge:hover {
+  border-color: var(--border-focus);
+}
+
+.version-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.version-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.version-btn.active {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.version-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.v1-dot {
+  background-color: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+.v2-dot {
+  background-color: #10b981;
+  box-shadow: 0 0 7px rgba(16, 185, 129, 0.6);
+}
+
+[data-theme="dark"] .version-btn.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
 .header-datetime-badge {
   display: flex;
   align-items: center;

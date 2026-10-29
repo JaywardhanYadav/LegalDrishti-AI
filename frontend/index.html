@@ -107,6 +107,18 @@
         <div class="header-left"></div>
 
         <div class="header-right">
+          <!-- Dual-Track Version Switcher (V1 OpenAI vs V2 Local GPU Octen) -->
+          <div class="version-toggle-badge" id="version-toggle-container" title="Select Legal Intelligence Pipeline Version">
+            <button type="button" class="version-btn" id="btn-version-v1" data-version="v1" title="Version 1: OpenAI text-embedding-3-small + Cloud Hybrid">
+              <span class="version-dot v1-dot"></span>
+              <span class="version-name">V1 Cloud</span>
+            </button>
+            <button type="button" class="version-btn active" id="btn-version-v2" data-version="v2" title="Version 2: Local Fine-Tuned Octen-0.6B (RTX 4050 GPU) + Jev Decision Engine">
+              <span class="version-dot v2-dot"></span>
+              <span class="version-name">V2 GPU</span>
+            </button>
+          </div>
+
           <!-- Live Chamber Date & Time Badge -->
           <div class="header-datetime-badge" id="header-datetime" title="Current Chamber Date & Time">
             <svg class="datetime-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -23,6 +23,30 @@ let activeSessionId = null;
 let userChatSessions = [];
 let deepSearchActive = false;
 let credits = 3;
+let currentApiVersion = localStorage.getItem('legaldrishti_api_version') || 'v2';
+
+function setApiVersion(version) {
+  currentApiVersion = version;
+  localStorage.setItem('legaldrishti_api_version', version);
+  const btnV1 = document.getElementById('btn-version-v1');
+  const btnV2 = document.getElementById('btn-version-v2');
+  if (btnV1 && btnV2) {
+    btnV1.classList.toggle('active', version === 'v1');
+    btnV2.classList.toggle('active', version === 'v2');
+  }
+}
+
+function initVersionSwitcher() {
+  const btnV1 = document.getElementById('btn-version-v1');
+  const btnV2 = document.getElementById('btn-version-v2');
+  if (btnV1) {
+    btnV1.addEventListener('click', () => setApiVersion('v1'));
+  }
+  if (btnV2) {
+    btnV2.addEventListener('click', () => setApiVersion('v2'));
+  }
+  setApiVersion(currentApiVersion);
+}
 
 // Document vaults data (synced with PostgreSQL backend)
 const defaultCases = [];
@@ -277,7 +301,8 @@ async function handleSend() {
     let responseHandled = false;
     if (activeSessionId) {
       try {
-        const msgRes = await fetch(`/api/v1/chat/sessions/${activeSessionId}/messages/stream`, {
+        const apiPrefix = (currentApiVersion === 'v2') ? '/api/v2' : '/api/v1';
+        const msgRes = await fetch(`${apiPrefix}/chat/sessions/${activeSessionId}/messages/stream`, {
           method: 'POST',
           headers: getAuthHeaders(true),
           body: JSON.stringify({
@@ -2020,6 +2045,7 @@ if (sidebarProfileCard && sidebarLogoutBtn) {
 }
 
 // ================= INITIALIZATION =================
+initVersionSwitcher();
 updateHeaderDateTime();
 setInterval(updateHeaderDateTime, 1000);
 // Periodically update relative timestamps ("Just now", "2m ago") in sidebar
