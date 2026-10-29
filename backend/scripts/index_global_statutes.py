@@ -2,27 +2,30 @@ import sys
 import time
 import asyncio
 from pathlib import Path
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from pypdf import PdfReader
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from app.services.vector_store import (
+from app.services.vector_store_v1 import (
     get_weaviate_client,
     ensure_statute_collection_exists,
     STATUTE_COLLECTION_NAME,
 )
-from app.services.embeddings import get_embeddings_batch
+from app.services.embeddings_v1 import get_embeddings_batch
 from weaviate.classes.data import DataObject
 from weaviate.classes.query import Filter
 
 LEGAL_PDFS_DIR = BASE_DIR.parent / "Legal Pdfs"
 
 
-from app.services.chunking import (
-    split_legal_statute_text,
-    split_legal_document_text,
-    is_statutory_text,
+from app.services.chunking_v1 import (
+    split_document_v1,
 )
 
 
@@ -57,56 +60,29 @@ def get_embeddings_with_retry(texts: list[str], max_retries: int = 3):
 
 async def index_pdf_file(pdf_path: Path, max_pages: int = 150):
     pdf_name = pdf_path.name
-    print(f"\n[Librarian] Examining '{pdf_name}'...")
 
     existing_count = get_indexed_chunk_count(pdf_name)
+    if existing_count > 0:
+        print(f"\n[V1 Librarian] Skipping '{pdf_name}': already indexed ({existing_count} chunks in Weaviate).")
+        return
 
-    reader = PdfReader(str(pdf_path))
-    total_pages = len(reader.pages)
-    pages_to_process = min(total_pages, max_pages)
-    print(f"  --> Reading {pages_to_process} of {total_pages} pages...")
+    print(f"\n[V1 Librarian] Parsing & Chunking '{pdf_name}' via Docling + LangChain (chunking_v1)...")
 
-    page_segments: list[str] = []
-    for page_idx in range(pages_to_process):
-        page_num = page_idx + 1
-        try:
-            page_text = reader.pages[page_idx].extract_text() or ""
-            if page_text.strip():
-                page_segments.append(f"--- [Page {page_num}] ---\n{page_text.strip()}")
-        except Exception:
-            continue
-
-    if not page_segments:
+    chunks = split_document_v1(pdf_path, chunk_size=1000, chunk_overlap=150, max_pages=max_pages)
+    if not chunks:
         print(f"  --> Warning: No extractable text found in '{pdf_name}'.")
         return
 
-    full_text = "\n\n".join(page_segments)
-
-    # Use contextual semantic chunking with sticky header injection
-    if is_statutory_text(full_text):
-        chunk_tuples = split_legal_statute_text(full_text, statute_name=pdf_name)
-    else:
-        chunk_tuples = split_legal_document_text(full_text, document_title=pdf_name)
-
     all_chunks: list[dict] = []
-    for chunk_counter, (c_text, page_num, _) in enumerate(chunk_tuples, start=1):
+    for c in chunks:
         all_chunks.append({
-            "chunk_text": c_text,
+            "chunk_text": c["chunk_text"],
             "pdf_name": pdf_name,
-            "page_number": page_num,
-            "chunk_index": chunk_counter,
+            "page_number": c.get("page_number", 1),
+            "chunk_index": c["chunk_index"],
         })
 
-
-    # If already fully indexed, skip
-    if existing_count >= len(all_chunks):
-        print(f"  --> Skipping: '{pdf_name}' is already completely indexed ({existing_count} chunks in Weaviate).")
-        return
-
-    # If partially indexed due to network drop, clean up partials and re-insert cleanly
-    if existing_count > 0:
-        print(f"  --> Cleaning up previous partial index ({existing_count} chunks) to re-index cleanly...")
-        delete_pdf_chunks(pdf_name)
+    delete_pdf_chunks(pdf_name)
 
     print(f"  --> Extracted {len(all_chunks)} chunks. Generating embeddings & uploading to Weaviate...")
 
@@ -136,7 +112,7 @@ async def index_pdf_file(pdf_path: Path, max_pages: int = 150):
             collection.data.insert_many(data_objects)
             print(f"      Uploaded chunks {i + 1} to {min(i + batch_size, len(all_chunks))} of {len(all_chunks)}")
 
-    print(f"✓ '{pdf_name}' indexed successfully ({len(all_chunks)} chunks placed on Weaviate shelves)!")
+    print(f"[OK] '{pdf_name}' indexed successfully ({len(all_chunks)} chunks placed on Weaviate shelves)!")
 
 
 async def main():
@@ -146,13 +122,15 @@ async def main():
         pdf_files = sorted([f for f in LEGAL_PDFS_DIR.iterdir() if f.suffix.lower() == ".pdf"])
         total = len(pdf_files)
         print(f"Resuming indexing for {total} PDF volumes from {LEGAL_PDFS_DIR}...")
-        
         for idx, pdf_path in enumerate(pdf_files, 1):
             print(f"\n[{idx}/{total}] Checking: {pdf_path.name}")
-            await index_pdf_file(pdf_path, max_pages=150)
+            try:
+                await index_pdf_file(pdf_path, max_pages=150)
+            except Exception as exc:
+                print(f"  [ERROR] Failed to index '{pdf_path.name}': {exc}. Continuing to next...")
             
         print("\n" + "=" * 70)
-        print(f"✓ All {total} Legal PDF volumes are completely indexed and live in Weaviate!")
+        print(f"[OK] All {total} Legal PDF volumes are completely indexed and live in Weaviate!")
         print("=" * 70)
         return
 

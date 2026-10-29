@@ -6,10 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from app.core.config import get_settings
-from app.services.statute_router import route_query_to_statutes
-from app.services.embeddings import get_embedding
-from app.services.vector_store import hybrid_search_statutes
-from app.services.retrieval import rerank_chunks
+from app.services.embeddings_v1 import get_embedding
+from app.services.vector_store_v1 import hybrid_search_statutes
+from app.services.retrieval_v1 import rerank_chunks
 from openai import OpenAI
 
 
@@ -18,13 +17,7 @@ async def test_statute_rag(query: str):
     print(f"LEGAL QUERY: {query}")
     print("=" * 80)
 
-    routed = route_query_to_statutes(query, max_statutes=3)
-    target_pdfs = [r["pdf_name"] for r in routed]
-
-    print(f"\n[1. Router] Selected target statutes: {target_pdfs}")
-
-    for r in routed:
-        print(f"    - {r['pdf_name']} (Score: {r['score']}, Matched: {r['matched_keywords']})")
+    print("\n[1. Retrieval] Running Global Weaviate Hybrid Search (Dense Vector + BM25, alpha=0.5)...")
 
     print("\n[2. Bi-Encoder] Running Weaviate Hybrid Search (BM25 + Vector, alpha=0.5)...")
 
@@ -33,9 +26,9 @@ async def test_statute_rag(query: str):
     raw_candidates = hybrid_search_statutes(
         query_text=query,
         query_vector=query_vector,
-        target_pdf_names=target_pdfs,
+        target_pdf_names=[],
         alpha=0.5,
-        limit=20,
+        limit=40,
     )
 
     print(f"    Retrieved {len(raw_candidates)} candidate chunks from Weaviate.")

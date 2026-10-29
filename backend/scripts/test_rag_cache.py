@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from app.core.database import async_session_factory
-from app.services.retrieval import generate_grounded_legal_answer
+from app.services.retrieval_v1 import generate_grounded_legal_answer
 from app.core.redis_client import delete_keys_by_pattern, is_redis_ready
 
 
