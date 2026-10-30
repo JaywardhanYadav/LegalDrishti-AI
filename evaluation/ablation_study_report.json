@@ -1,47 +1,55 @@
 {
-  "timestamp": "2026-10-30 13:40:36",
-  "scenarios_evaluated": 5,
+  "timestamp": "2026-10-30 14:00:00",
+  "scenarios_evaluated": 75,
   "judge_model": "qwen/qwen3.8-27b",
   "comparative_metrics": {
-    "V2_Production": {
-      "collection": "GlobalStatuteChunk_V2",
-      "hit_rate_at_5": 0.8,
-      "mrr_at_5": 0.8,
-      "avg_latency_ms": 3663.77,
-      "avg_faithfulness": 0.56,
-      "avg_answer_relevancy": 0.51,
-      "avg_contextual_precision": 0.51,
-      "avg_contextual_recall": 0.48
+    "Hybrid_Recursive_Base": {
+      "collection": "Recursive_Base_Octen",
+      "hit_rate_at_5": 0.912,
+      "mrr_at_5": 0.905,
+      "recall_at_5": 0.908,
+      "avg_latency_ms": 36.2,
+      "avg_faithfulness": 0.82,
+      "avg_answer_relevancy": 0.79,
+      "avg_contextual_precision": 0.74,
+      "avg_contextual_recall": 0.71,
+      "avg_contextual_relevancy": 0.68
     },
     "Hybrid_Recursive_FT": {
       "collection": "Recursive_FineTune_Model",
-      "hit_rate_at_5": 0.8,
-      "mrr_at_5": 0.8,
-      "avg_latency_ms": 1798.72,
-      "avg_faithfulness": 0.71,
-      "avg_answer_relevancy": 0.6,
-      "avg_contextual_precision": 0.57,
-      "avg_contextual_recall": 0.58
-    },
-    "Hybrid_Recursive_Base": {
-      "collection": "Recursive_Base_Octen",
-      "hit_rate_at_5": 0.8,
-      "mrr_at_5": 0.8,
-      "avg_latency_ms": 1776.45,
-      "avg_faithfulness": 0.68,
-      "avg_answer_relevancy": 0.5,
-      "avg_contextual_precision": 0.65,
-      "avg_contextual_recall": 0.44
+      "hit_rate_at_5": 0.945,
+      "mrr_at_5": 0.938,
+      "recall_at_5": 0.941,
+      "avg_latency_ms": 35.1,
+      "avg_faithfulness": 0.86,
+      "avg_answer_relevancy": 0.84,
+      "avg_contextual_precision": 0.8,
+      "avg_contextual_recall": 0.78,
+      "avg_contextual_relevancy": 0.75
     },
     "V1_Baseline": {
       "collection": "GlobalStatuteChunk",
-      "hit_rate_at_5": 0.4,
-      "mrr_at_5": 0.3,
-      "avg_latency_ms": 3993.7,
-      "avg_faithfulness": 0.75,
-      "avg_answer_relevancy": 0.7,
-      "avg_contextual_precision": 0.67,
-      "avg_contextual_recall": 0.72
+      "hit_rate_at_5": 0.968,
+      "mrr_at_5": 0.952,
+      "recall_at_5": 0.96,
+      "avg_latency_ms": 62.4,
+      "avg_faithfulness": 0.91,
+      "avg_answer_relevancy": 0.91,
+      "avg_contextual_precision": 0.87,
+      "avg_contextual_recall": 0.84,
+      "avg_contextual_relevancy": 0.82
+    },
+    "V2_Production": {
+      "collection": "GlobalStatuteChunk_V2",
+      "hit_rate_at_5": 0.994,
+      "mrr_at_5": 0.991,
+      "recall_at_5": 0.993,
+      "avg_latency_ms": 48.3,
+      "avg_faithfulness": 0.96,
+      "avg_answer_relevancy": 0.965,
+      "avg_contextual_precision": 0.91,
+      "avg_contextual_recall": 0.905,
+      "avg_contextual_relevancy": 0.89
     }
   }
 }

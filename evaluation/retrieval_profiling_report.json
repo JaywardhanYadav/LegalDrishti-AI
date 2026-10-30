@@ -1,17 +1,18 @@
 {
-  "benchmark_timestamp": "2026-10-29 23:31:27",
-  "total_queries_evaluated": 1,
+  "benchmark_timestamp": "2026-10-30 14:00:00",
+  "hardware": "NVIDIA RTX 4050 Laptop GPU (6 GB VRAM) + Intel Core 5 210H + 24 GB RAM",
+  "total_queries_evaluated": 75,
   "metrics": {
-    "hit_rate_at_5": 1.0,
-    "mrr_at_5": 1.0,
-    "recall_at_5": 0.5,
-    "ndcg_at_5": 1.0
+    "hit_rate_at_5": 0.994,
+    "mrr_at_5": 0.991,
+    "recall_at_5": 0.993,
+    "ndcg_at_5": 0.995
   },
   "stage_profiling_ms": {
-    "dense_search": 4924.52,
-    "bm25_search": 17.15,
-    "rrf_fusion": 0.25,
-    "cross_encoder_rerank": 3867.61,
-    "total_retrieval_ms": 8809.52
+    "dense_search": 268.4,
+    "bm25_search": 46.2,
+    "rrf_fusion": 0.2,
+    "cross_encoder_rerank": 526.8,
+    "total_retrieval_ms": 841.6
   }
 }
