@@ -73,8 +73,16 @@ flowchart TD
     end
 
     ROW1 ~~~ SPACE_ROW[" "] ~~~ RETRIEVE_V1
+    RETRIEVE_V1 ~~~ SPACE_ROW2[" "] ~~~ SYNTHESIS_V1
+
+    subgraph SYNTHESIS_V1["4. Grounded Context Synthesis"]
+        direction LR
+        PROMPT_V1["Grounded Prompt Assembly\n(Query + Top Chunks + Web Insights)"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"] --> ANS_V1["Generated Legal Answer"]
+    end
+
     style ROW1 fill:none,stroke:none
     style SPACE_ROW fill:none,stroke:none,color:transparent
+    style SPACE_ROW2 fill:none,stroke:none,color:transparent
 ```
 
 ---
