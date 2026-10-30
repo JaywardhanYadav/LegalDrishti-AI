@@ -115,7 +115,7 @@ flowchart TD
 
 To test how accurately LegalDrishti AI finds the law and answers questions, we tested it on **75 real-world Indian legal test questions**. We compared 4 different system setups and used an AI judge (`qwen-27b`) to grade the accuracy of every answer:
 
-### 🏆 4-Way Ablation Benchmark Results
+### 4-Way Pipeline Track Results
 
 | Pipeline Track | Chunking Strategy | Embedding Model | Hit Rate @ 5 | MRR @ 5 | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
