@@ -33,7 +33,7 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 * **Grounded Context Synthesis:** Merges retrieved statutory provisions, client vault evidence, and web search insights into a single prompt for OpenAI GPT-4o to generate a comprehensive, grounded legal answer.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph INGEST_V1["1. Document Ingestion & Storage"]
         direction LR
         DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
@@ -51,6 +51,22 @@ flowchart LR
     subgraph TRIAGE_V1["2. Query Analysis & Triage"]
         direction LR
         QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
+    end
+
+    INGEST_V1 ~~~ RETRIEVE_V1
+
+    subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
+        direction TB
+
+        subgraph PIPELINE_INTERNAL["Track A: Two-Stage Hybrid Pipeline (Statutes & User Vault)"]
+            direction LR
+            HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
+        end
+
+        subgraph PIPELINE_WEB["Track B: Live Web Search API Agent"]
+            direction LR
+            AGENT_WEB["Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
+        end
     end
 ```
 
