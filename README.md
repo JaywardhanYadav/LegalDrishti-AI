@@ -35,7 +35,7 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 flowchart TD
     subgraph INGEST_V1["1. Document Ingestion & Storage"]
         direction LR
-        DOCS_V1["28 Indian Bare Acts & PDFs"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"] --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"] --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"] --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
+        DOCS_V1["28 Indian Bare Acts &\nUser Case Files (PDFs/docx)"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"] --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"] --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"] --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
     subgraph RETRIEVE_V1["2. Two-Stage Hybrid Retrieval & Reranking"]
@@ -58,53 +58,48 @@ flowchart TD
 
 Version 2 represents the production-grade sovereign AI platform re-engineered specifically for the nuances of Indian statutory law:
 
-* **Structured AST Extraction:** Ingests complex legal PDFs through **IBM Docling**, capturing tables, headings, and document layout into structured markdown.
+* **Structured AST Extraction:** Ingests 28 Indian Bare Acts and user case vault documents through **IBM Docling**, capturing tables, headings, and legal layout into structured markdown.
 * **Section-Aware Contextual Semantic Chunking:** Replaces blind character slicing with legal hierarchy boundary detection. Injects **sticky breadcrumb headers** (`[Act > Chapter > Section > Heading]`), guaranteeing that every statutory provision, proviso, and explanation remains unified within a single coherent chunk.
 * **Local Fine-Tuned Embedding Engine:** Runs a domain-adapted `octen-0.6b-finetuned` (1024-D) embedding model locally on **PyTorch CUDA**, completely removing cloud API latency, recurring per-token costs, and data exfiltration risks.
-* **Two-Stage Multi-Pipeline Hybrid Retrieval:**
-  1. **Decision Router:** Analyzes query intent to dispatch requests across `STATUTE_ONLY`, `VAULT_ONLY`, `DUAL_STREAM`, or `DRAFT_DOCUMENT`.
-  2. **Reciprocal Rank Fusion (RRF):** Fuses Dense Vector Search and Sparse BM25 Okapi into a unified candidate pool of 40 chunks.
-  3. **FlashRank Cross-Encoder:** Evaluates deep token-level cross-attention (`ms-marco-MiniLM-L-12-v2`) to surface the top 4–5 deduplicated, high-precision statutory excerpts.
-* **Dual-Stream Grounded Synthesis:** Decouples public governing statutes from private case evidence in a dual-stream prompt, enforcing strict citation grounding (Act, Section, Sub-section, Page number) with a zero-hallucination standard.
+* **JEV (System 1) Decision Model:** Operates as an ultra-fast cognitive decision gateway (`decision_router.py`). Analyzes query intent to dispatch requests across parallel execution paths:
+  1. *Internal Two-Stage Hybrid Pipeline:* Executes Dense Vector Search + Sparse BM25 Okapi across Bare Acts & Client Vaults, fuses candidates via Reciprocal Rank Fusion (RRF, 40 chunks), and reranks with the **FlashRank Cross-Encoder** (`ms-marco-MiniLM-L-12-v2`).
+  2. *External Web Search API Agent:* Concurrently queries the web for live Supreme Court / High Court rulings, gazettes, and real-time legal notifications.
+* **Dual-Stream Grounded Synthesis (Merge Point):** Merges internal statutory excerpts, client case evidence, and live web precedents into a unified prompt engine, synthesized by **OpenAI GPT-4o / Groq Qwen-27B** with strict citation grounding (Act, Section, Sub-section, Page number, Web URL) and a zero-hallucination standard.
 
 ```mermaid
 flowchart TD
     subgraph INGEST_V2["1. Sovereign Ingestion & Section-Aware Chunking"]
-        STATUTES_V2["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
-        VAULT_V2["Private Client Case Vault\n(FIRs, Plaints, Contracts, Memos)"]
-
-        STATUTES_V2 --> DOCLING["IBM Docling Parser\n(AST & Layout Extraction)"]
-        VAULT_V2 --> DOCLING
-        
-        DOCLING --> CHUNKER_V2["Section-Aware Contextual Semantic Chunker\n(Sticky Headers: Act > Chapter > Section)"]
-        CHUNKER_V2 --> EMBED_V2["Local Fine-Tuned Octen-0.6B Engine\n(1024-D PyTorch CUDA Acceleration)"]
-        EMBED_V2 --> WEAVIATE_V2[("Weaviate Collection:\nGlobalStatuteChunk_V2")]
+        direction LR
+        DOCS_V2["28 Indian Bare Acts &\nClient Case Vaults"] --> DOCLING["IBM Docling Parser\n(AST & Layout Extraction)"] --> CHUNKER_V2["Section-Aware Semantic Chunker\n(Sticky Headers: Act > Chapter > Section)"] --> EMBED_V2["Local Fine-Tuned Octen-0.6B\n(1024-D PyTorch CUDA)"] --> WEAVIATE_V2[("Weaviate Collection:\nGlobalStatuteChunk_V2")]
     end
 
-    subgraph RETRIEVE_V2["2. Intent Routing & RRF Two-Stage Retrieval"]
-        QUERY_V2["User Legal Query"] --> ROUTER_V2["Multi-Pipeline Decision Router\n(STATUTE / VAULT / DUAL / DRAFT)"]
-        
-        ROUTER_V2 --> DENSE_V2["Dense Vector Search\n(Cosine Similarity)"]
-        ROUTER_V2 --> BM25_V2["Sparse Keyword Search\n(BM25 Okapi)"]
-        
-        DENSE_V2 --> WEAVIATE_V2
-        BM25_V2 --> WEAVIATE_V2
-        
-        WEAVIATE_V2 --> RRF_V2["Reciprocal Rank Fusion (RRF)\nCandidate Pool (40 Chunks)"]
-        RRF_V2 --> FLASHRANK_V2["FlashRank Cross-Encoder Reranker\n(ms-marco-MiniLM-L-12-v2)"]
-        FLASHRANK_V2 --> TOP_V2["Top 4-5 Precision Chunks\n(Filtered & Deduplicated)"]
+    subgraph DECISION_V2["2. Query & JEV Decision Model"]
+        direction LR
+        USER_Q["User Legal Query"] --> JEV_ROUTER["JEV (System 1) Decision Model\n(Intent, Strategy & Route Analysis)"]
     end
 
-    subgraph GEN_V2["3. Dual-Stream Grounded Synthesis"]
-        TOP_V2 --> STREAM1_V2["Stream 1: Governing Statutory Mandate\n(Act, Section, Provisos)"]
-        VAULT_V2 -.-> STREAM2_V2["Stream 2: Client Case Evidence\n(Exhibits, Dates, FIR Allegations)"]
-        
-        STREAM1_V2 --> PROMPT_V2["Dual-Stream Grounded Prompt Engine\n(Zero Hallucination Standard)"]
-        STREAM2_V2 --> PROMPT_V2
-        
-        PROMPT_V2 --> SYNTHESIS_V2["Synthesis Engine\n(OpenAI GPT-4o / Groq Qwen-27B)"]
-        SYNTHESIS_V2 --> FINAL_V2["Authoritative Legal Verdict & Grounded Citations\n(Act, Section, Sub-section, Exact Page No.)"]
+    subgraph BRANCHES_V2["3. Parallel Dual-Track Retrieval Engines"]
+        subgraph PIPELINE_A["Branch A: Two-Stage Hybrid Pipeline (Statutes & Case Vault)"]
+            direction LR
+            HYBRID_SEARCH["Dense Vector + Sparse BM25\n(Bare Acts & Client Vault)"] --> RRF_FUSION["Reciprocal Rank Fusion\n(40 Candidate Chunks)"] --> FLASHRANK_V2["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 4-5 High-Precision\nStatutory & Case Chunks"]
+        end
+
+        subgraph PIPELINE_B["Branch B: External API Search Agent (Live Web Precedents)"]
+            direction LR
+            WEB_AGENT["Live Web Search API Agent\n(Tavily / Google Serper)"] --> WEB_RESULTS["Live Case Law, Gazettes &\nRecent Court Precedents"]
+        end
     end
+
+    subgraph SYNTHESIS_V2["4. Grounded Legal Synthesis (Merge & Output)"]
+        direction LR
+        MERGE_PROMPT["Dual-Stream Grounded Prompt Engine\n[Internal Statutory Evidence + Web Precedents]"] --> LLM_GEN["Synthesis Engine\n(OpenAI GPT-4o / Groq Qwen-27B)"] --> FINAL_VERDICT["Authoritative Grounded Legal Answer\n(Act, Section, Page No. & Web Citations)"]
+    end
+
+    INGEST_V2 -.-> HYBRID_SEARCH
+    JEV_ROUTER ==> PIPELINE_A
+    JEV_ROUTER ==> PIPELINE_B
+    TOP_INTERNAL ==> MERGE_PROMPT
+    WEB_RESULTS ==> MERGE_PROMPT
 ```
 
 ---
