@@ -18,52 +18,93 @@ It seamlessly bridges historical Indian jurisprudence (IPC 1860, CrPC 1973, IEA 
 
 ---
 
-## 🏛️ System Architecture (V1 vs. V2)
+## 🏛️ System Architecture
 
-LegalDrishti AI is architected as a **Dual-Stream RAG Engine** that decouples public sovereign statutory law from private evidentiary client vaults. The platform evolved from a cloud-dependent prototype (**V1**) into a sovereign, locally fine-tuned production champion (**V2**):
+### 1. Version 1 (V1) — Baseline Cloud Prototype
+
+Version 1 was developed as the initial proof-of-concept pipeline relying on cloud APIs and standard document processing conventions:
+
+* **Document Ingestion:** Extracted text from Indian Bare Acts and client documents using standard PyPDF and docx parsers.
+* **Chunking Strategy:** Fixed-size sliding windows using LangChain's `RecursiveCharacterTextSplitter` (1000 characters with 200-character overlap). While functional for general prose, this approach frequently severed statutory provisions, cutting off essential provisos, explanations, and punishment sub-sections from their parent sections.
+* **Embedding Model:** Cloud-dependent vector generation using OpenAI's `text-embedding-3-small` (1536-dimensional dense vectors).
+* **Storage & Retrieval:** Chunks were indexed in Weaviate (`GlobalStatuteChunk`), queried via basic hybrid search ($\alpha=0.5$), and reranked using FlashRank.
+* **Synthesis:** Single-pass prompt injection with OpenAI GPT-4o.
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION["1. Document Ingestion & Chunking Tracks"]
-        RAW_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
-        VAULT_DOCS["Client Case Vault\n(FIR, Plaint, Evidence, Memos)"]
-
-        RAW_STATUTES -->|Track V1| V1_CHUNK["V1: LangChain Recursive Splitter\n(1000 chars, 200 overlap)"]
-        RAW_STATUTES -->|Track V2| V2_CHUNK["V2: Section-Aware Contextual Semantic\n(Sticky Headers: Act > Chapter > Section)"]
-        VAULT_DOCS --> V2_CHUNK
+    subgraph INGEST_V1["V1 Document Ingestion & Indexing"]
+        DOCS_V1["28 Indian Bare Acts & PDFs"] --> EXTRACT_V1["Text Extraction (PyPDF / docx)"]
+        EXTRACT_V1 --> CHUNK_V1["Recursive Character Splitter\n(1000 chars, 200 overlap)"]
+        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Cloud API)"]
+        EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
-    subgraph EMBEDDINGS["2. Embedding & Vector Indexing"]
-        V1_CHUNK --> V1_EMBED["OpenAI text-embedding-3-small\n(1536-D Cloud API)"]
-        V2_CHUNK --> V2_EMBED["Local Fine-Tuned Octen-0.6B\n(1024-D PyTorch CUDA Acceleration)"]
-
-        V1_EMBED --> W_V1[("Weaviate V1 Collection\n'GlobalStatuteChunk'")]
-        V2_EMBED --> W_V2[("Weaviate V2 Collection\n'GlobalStatuteChunk_V2'")]
+    subgraph RETRIEVE_V1["V1 Hybrid Retrieval & Reranking"]
+        Q_V1["User Legal Query"] --> HYBRID_V1["Hybrid Search (alpha = 0.5)\nDense Vector + BM25"]
+        WEAVIATE_V1 --> HYBRID_V1
+        HYBRID_V1 --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"]
+        RERANK_V1 --> TOP5_V1["Top 5 Retrieved Chunks"]
     end
 
-    subgraph RETRIEVAL["3. Two-Stage Global Hybrid Retrieval & Fusion"]
-        USER_QUERY["User Legal Query"] --> DECISION_ROUTER["Multi-Pipeline Decision Router\n(Statutory / Vault / Drafting / Comparison)"]
-        
-        DECISION_ROUTER --> DENSE_SEARCH["Dense Semantic Vector Search\n(Cosine Similarity)"]
-        DECISION_ROUTER --> SPARSE_SEARCH["Sparse Keyword Search\n(BM25 Okapi)"]
-        
-        DENSE_SEARCH --> W_V2
-        SPARSE_SEARCH --> W_V2
+    subgraph GEN_V1["V1 Context Synthesis"]
+        TOP5_V1 --> PROMPT_V1["Standard Legal Prompt"]
+        PROMPT_V1 --> LLM_V1["OpenAI GPT-4o"]
+        LLM_V1 --> ANS_V1["Generated Legal Advice"]
+    end
+```
 
-        W_V2 --> RRF["Reciprocal Rank Fusion (RRF)\nRaw Candidate Pool (40 Chunks)"]
-        RRF --> RERANKER["FlashRank Cross-Encoder Reranker\n(ms-marco-MiniLM-L-12-v2)"]
-        RERANKER --> TOP_CHUNKS["Top 4-5 High-Precision Chunks\n(Filtered & Deduplicated)"]
+---
+
+### 2. Version 2 (V2) — Production Sovereign Multi-Model Architecture
+
+Version 2 represents the production-grade sovereign AI platform re-engineered specifically for the nuances of Indian statutory law:
+
+* **Structured AST Extraction:** Ingests complex legal PDFs through **IBM Docling**, capturing tables, headings, and document layout into structured markdown.
+* **Section-Aware Contextual Semantic Chunking:** Replaces blind character slicing with legal hierarchy boundary detection. Injects **sticky breadcrumb headers** (`[Act > Chapter > Section > Heading]`), guaranteeing that every statutory provision, proviso, and explanation remains unified within a single coherent chunk.
+* **Local Fine-Tuned Embedding Engine:** Runs a domain-adapted `octen-0.6b-finetuned` (1024-D) embedding model locally on **PyTorch CUDA**, completely removing cloud API latency, recurring per-token costs, and data exfiltration risks.
+* **Two-Stage Multi-Pipeline Hybrid Retrieval:**
+  1. **Decision Router:** Analyzes query intent to dispatch requests across `STATUTE_ONLY`, `VAULT_ONLY`, `DUAL_STREAM`, or `DRAFT_DOCUMENT`.
+  2. **Reciprocal Rank Fusion (RRF):** Fuses Dense Vector Search and Sparse BM25 Okapi into a unified candidate pool of 40 chunks.
+  3. **FlashRank Cross-Encoder:** Evaluates deep token-level cross-attention (`ms-marco-MiniLM-L-12-v2`) to surface the top 4–5 deduplicated, high-precision statutory excerpts.
+* **Dual-Stream Grounded Synthesis:** Decouples public governing statutes from private case evidence in a dual-stream prompt, enforcing strict citation grounding (Act, Section, Sub-section, Page number) with a zero-hallucination standard.
+
+```mermaid
+flowchart TD
+    subgraph INGEST_V2["1. Sovereign Ingestion & Section-Aware Chunking"]
+        STATUTES_V2["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
+        VAULT_V2["Private Client Case Vault\n(FIRs, Plaints, Contracts, Memos)"]
+
+        STATUTES_V2 --> DOCLING["IBM Docling Parser\n(AST & Layout Extraction)"]
+        VAULT_V2 --> DOCLING
+        
+        DOCLING --> CHUNKER_V2["Section-Aware Contextual Semantic Chunker\n(Sticky Headers: Act > Chapter > Section)"]
+        CHUNKER_V2 --> EMBED_V2["Local Fine-Tuned Octen-0.6B Engine\n(1024-D PyTorch CUDA Acceleration)"]
+        EMBED_V2 --> WEAVIATE_V2[("Weaviate Collection:\nGlobalStatuteChunk_V2")]
     end
 
-    subgraph GENERATION["4. Dual-Stream Grounded Legal Synthesis"]
-        TOP_CHUNKS --> STREAM1["Stream 1: Governing Statutory Mandate\n(Bare Act, Section, Provisos)"]
-        VAULT_DOCS -.-> STREAM2["Stream 2: Client Evidentiary Vault\n(Exhibits, Dates, FIR Allegations)"]
+    subgraph RETRIEVE_V2["2. Intent Routing & RRF Two-Stage Retrieval"]
+        QUERY_V2["User Legal Query"] --> ROUTER_V2["Multi-Pipeline Decision Router\n(STATUTE / VAULT / DUAL / DRAFT)"]
         
-        STREAM1 --> PROMPT_ENGINE["Dual-Stream Grounded Legal Prompt\n(Zero Hallucination Directive)"]
-        STREAM2 --> PROMPT_ENGINE
+        ROUTER_V2 --> DENSE_V2["Dense Vector Search\n(Cosine Similarity)"]
+        ROUTER_V2 --> BM25_V2["Sparse Keyword Search\n(BM25 Okapi)"]
         
-        PROMPT_ENGINE --> LLM_ENGINE["Synthesis Engine\n(OpenAI GPT-4o / Groq Qwen-27B)"]
-        LLM_ENGINE --> FINAL_OUTPUT["Actionable Legal Opinion & Citations\n(Act Name, Section, Sub-section, Exact Page No.)"]
+        DENSE_V2 --> WEAVIATE_V2
+        BM25_V2 --> WEAVIATE_V2
+        
+        WEAVIATE_V2 --> RRF_V2["Reciprocal Rank Fusion (RRF)\nCandidate Pool (40 Chunks)"]
+        RRF_V2 --> FLASHRANK_V2["FlashRank Cross-Encoder Reranker\n(ms-marco-MiniLM-L-12-v2)"]
+        FLASHRANK_V2 --> TOP_V2["Top 4-5 Precision Chunks\n(Filtered & Deduplicated)"]
+    end
+
+    subgraph GEN_V2["3. Dual-Stream Grounded Synthesis"]
+        TOP_V2 --> STREAM1_V2["Stream 1: Governing Statutory Mandate\n(Act, Section, Provisos)"]
+        VAULT_V2 -.-> STREAM2_V2["Stream 2: Client Case Evidence\n(Exhibits, Dates, FIR Allegations)"]
+        
+        STREAM1_V2 --> PROMPT_V2["Dual-Stream Grounded Prompt Engine\n(Zero Hallucination Standard)"]
+        STREAM2_V2 --> PROMPT_V2
+        
+        PROMPT_V2 --> SYNTHESIS_V2["Synthesis Engine\n(OpenAI GPT-4o / Groq Qwen-27B)"]
+        SYNTHESIS_V2 --> FINAL_V2["Authoritative Legal Verdict & Grounded Citations\n(Act, Section, Sub-section, Exact Page No.)"]
     end
 ```
 
