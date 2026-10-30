@@ -57,12 +57,14 @@ flowchart TD
     end
 
     subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
-        direction TB
+        direction LR
 
         subgraph PIPELINE_INTERNAL["Track A: Two-Stage Hybrid Pipeline (Statutes & User Vault)"]
             direction LR
             HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
         end
+
+        PIPELINE_INTERNAL ~~~ PIPELINE_WEB
 
         subgraph PIPELINE_WEB["Track B: Live Web Search API Agent"]
             direction LR
