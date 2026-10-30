@@ -111,7 +111,7 @@ flowchart TD
 
 ---
 
-## 📊 Empirical Evaluation & 4-Way Ablation Benchmarks
+## ⚖️ Evaluation
 
 To eliminate guesswork and validate LegalDrishti AI against empirical standards, the retrieval and generation pipelines were evaluated across a **75-scenario Indian statutory golden dataset** using **Groq Cloud (`qwen/qwen3.8-27b`) as an impartial LLM Judge** running at `temperature=0.0`:
 
