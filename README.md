@@ -1,5 +1,5 @@
 # ⚖️ LegalDrishti AI
-### Enterprise Dual-Stream Sovereign Indian Legal Intelligence & Agentic RAG Platform
+### Enterprise Dual-Stream Sovereign Indian Legal Intelligence & Multi-Model Hybrid RAG Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.5%20CUDA%2012.4-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
@@ -12,23 +12,9 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-**LegalDrishti AI** is an enterprise-grade AI legal consultation, statutory research, and document intelligence platform purpose-built for the Indian legal framework. 
+**LegalDrishti AI** is an enterprise-grade AI legal consultation, statutory research, and document intelligence platform purpose-built for the Indian legal framework to answer complex Indian legal questions in clear, proper, and authoritative English.
 
 It seamlessly bridges historical Indian jurisprudence (IPC 1860, CrPC 1973, IEA 1872) with newly enforced criminal codes (**BNS 2023, BNSS 2023, BSA 2023**), commercial statutes (NI Act, IBC, Arbitration, CPC, SRA), and private client case files through an advanced **Dual-Stream Retrieval-Augmented Generation (RAG)** pipeline.
-
----
-
-## 📑 Table of Contents
-- [🏛️ System Architecture (V1 vs. V2)](#️-system-architecture-v1-vs-v2)
-- [🔄 Architectural Evolution: Version 1 vs. Version 2](#-architectural-evolution-version-1-vs-version-2)
-- [📊 Empirical Evaluation & 4-Way Ablation Benchmarks](#-empirical-evaluation--4-way-ablation-benchmarks)
-- [🎯 Fine-Tuned Embedding Contrastive Triplet Learning](#-fine-tuned-embedding-contrastive-triplet-learning)
-- [⚖️ Core Enterprise Features](#️-core-enterprise-features)
-- [🛠️ Production Tech Stack](#️-production-tech-stack)
-- [📁 Repository Directory Structure](#-repository-directory-structure)
-- [🚀 Quick Start & Deployment Guide](#-quick-start--deployment-guide)
-- [🛣️ Engineering Roadmap](#️-engineering-roadmap)
-- [👤 Author & License](#-author--license)
 
 ---
 
