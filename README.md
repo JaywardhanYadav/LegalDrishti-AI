@@ -111,23 +111,6 @@ flowchart TD
 
 ---
 
-## 🔄 Architectural Evolution: Version 1 vs. Version 2
-
-LegalDrishti AI represents a complete architectural overhaul from cloud-tethered naive RAG to sovereign legal AI:
-
-| Architectural Component | Version 1 (Baseline Prototype) | Version 2 (Production Champion) | Why V2 is Superior |
-| :--- | :--- | :--- | :--- |
-| **Chunking Philosophy** | LangChain `RecursiveCharacterTextSplitter` (1000 chars, 200 overlap) | **Section-Aware Contextual Semantic Chunking** with **Sticky Breadcrumb Headers** | V1 severed legal sections, separating provisos and exceptions from main clauses. V2 preserves entire statutory provisions with `[Act > Chapter > Section]` context. |
-| **Embedding Model** | Cloud API: OpenAI `text-embedding-3-small` (1536-D) | **Local Fine-Tuned Octen-0.6B (1024-D)** running on PyTorch CUDA | V2 runs fully locally with **0 API cost**, **0 latency jitter**, and strict data privacy. Domain fine-tuning taught the model Indian statutory semantics. |
-| **Retrieval Strategy** | Basic Hybrid Search ($\alpha=0.5$) | **Dense + BM25 with Reciprocal Rank Fusion (RRF)** + Candidate Pool (40) | RRF eliminates score scale distortion between vector distances and BM25 scores, dramatically improving ranking robustness. |
-| **Reranking Engine** | Heuristic score thresholding | **FlashRank Cross-Encoder** (`ms-marco-MiniLM-L-12-v2`) | Evaluates deep token-level cross-attention between legal query and candidate passages in **<18ms**. |
-| **Hit Rate @ 5** | 88.6% | **100.0%** (Tested on 75 Golden Scenarios) | Authoritative legal clause is guaranteed to appear in the top-5 retrieved context. |
-| **Mean Reciprocal Rank (MRR @ 5)** | 0.784 | **1.000** | Governing statutory section appears at **Rank #1 or #2** on every test scenario. |
-| **Contextual Recall** | 0.650 | **0.880 (+35.3% Improvement)** | Section-aware chunking captures all essential legal provisos without truncation. |
-| **Sovereignty & Privacy** | Cloud embedding dependency | **100% Local GPU Execution** | Sensitive client evidentiary vault embeddings never leave your local infrastructure. |
-
----
-
 ## 📊 Empirical Evaluation & 4-Way Ablation Benchmarks
 
 To eliminate guesswork and validate LegalDrishti AI against empirical standards, the retrieval and generation pipelines were evaluated across a **75-scenario Indian statutory golden dataset** using **Groq Cloud (`qwen/qwen3.8-27b`) as an impartial LLM Judge** running at `temperature=0.0`:
