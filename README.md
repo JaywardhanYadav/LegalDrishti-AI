@@ -39,21 +39,15 @@ flowchart TD
         DOCS_V1["28 Indian Bare Acts &\nUser Case Files (PDFs/docx)"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"] --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"] --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"] --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
-    subgraph TRIAGE_V1["2. Query Analysis & Decision Model"]
+    subgraph TRIAGE_V1["2. Query Analysis & Triage"]
         direction LR
-        QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Triage Engine)"]
+        QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
     end
 
-    subgraph DUAL_BRANCHES["3. Parallel Retrieval Tracks"]
-        subgraph PIPELINE_INTERNAL["Track A: Two-Stage Hybrid Pipeline (Statutes & User Vault)"]
-            direction LR
-            HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
-        end
-
-        subgraph PIPELINE_WEB["Track B: Live Web Search API Agent"]
-            direction LR
-            AGENT_WEB["Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
-        end
+    subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
+        direction LR
+        HYBRID_V1["Two-Stage Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
+        AGENT_WEB["Live Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
     end
 
     subgraph SYNTHESIS_V1["4. Grounded Context Synthesis"]
@@ -61,9 +55,9 @@ flowchart TD
         PROMPT_V1["Prompt Assembly\n[Query + Statutory Chunks + Web Insights]"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"] --> ANS_V1["Generated Legal Answer"]
     end
 
-    INGEST_V1 -. Storage Chunks .-> HYBRID_V1
-    JEV_V1 -->|Activate Internal Retrieval| HYBRID_V1
-    JEV_V1 -->|Activate Live Search| AGENT_WEB
+    INGEST_V1 ==> RETRIEVE_V1
+    JEV_V1 -->|Route: Internal Law| HYBRID_V1
+    JEV_V1 -->|Route: Live Precedents| AGENT_WEB
     TOP_INTERNAL --> PROMPT_V1
     WEB_RESULTS --> PROMPT_V1
 ```
