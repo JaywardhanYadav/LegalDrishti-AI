@@ -119,10 +119,10 @@ To test how accurately LegalDrishti AI finds the law and answers questions, we t
 
 | Pipeline Track | Chunking Strategy | Embedding Model | Hit Rate @ 5 | MRR @ 5 | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **V2 Production** | **Section-Aware Contextual Semantic** | **Octen-0.6B (Fine-Tuned)** | **100.0%** | **1.000** | **0.950** | **0.950** | **0.880** | **0.880** |
-| **Hybrid FT** | Recursive Character (1000/200) | Octen-0.6B (Fine-Tuned) | 100.0% | 1.000 | 0.800 | 0.820 | 0.750 | 0.650 |
-| **Hybrid Base** | Recursive Character (1000/200) | Octen-0.6B (Base, Non-FT) | 100.0% | 1.000 | 0.800 | 0.750 | 0.700 | 0.600 |
-| **V1 Baseline** | Recursive Character (1000/200) | OpenAI `text-embedding-3-small` | 100.0% | 1.000 | 0.900 | 0.900 | 0.850 | 0.800 |
+| Hybrid non-finetune | Recursive Character (1000/200) | Octen-0.6B (Base, Non-FT) | 100.0% | 1.000 | 0.800 | 0.750 | 0.700 | 0.600 |
+| Hybrid finetune | Recursive Character (1000/200) | Octen-0.6B (Fine-Tuned) | 100.0% | 1.000 | 0.800 | 0.820 | 0.750 | 0.650 |
+| **Version 1 - Baseline** | **Recursive Character (1000/200)** | **OpenAI text-embedding-3-small** | **100.0%** | **1.000** | **0.900** | **0.900** | **0.850** | **0.800** |
+| **Version 2 - Production** | **Section-Aware Contextual Semantic** | **Octen-0.6B (Fine-Tuned)** | **100.0%** | **1.000** | **0.950** | **0.950** | **0.880** | **0.880** |
 
 ### 💡 Core Takeaways from the Ablation Study:
 1. **The Chunking Breakthrough:** Transitioning from naive 1000-character recursive splitting to Section-Aware Semantic Chunking with sticky headers yielded a **+35.3% increase in Contextual Recall (0.650 $\rightarrow$ 0.880)** and boosted Faithfulness to **0.950**.
