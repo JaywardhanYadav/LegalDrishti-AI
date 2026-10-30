@@ -36,7 +36,14 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 flowchart TD
     subgraph INGEST_V1["1. Document Ingestion & Storage"]
         direction LR
-        DOCS_V1["28 Indian Bare Acts &\nUser Case Files (PDFs/docx)"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"] --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"] --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"] --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
+        DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
+        DOC_USER["User Case Files\n(FIRs, Plaints, Agreements, Memos)"]
+
+        DOC_STATUTES --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
+        DOC_USER --> PARSER_V1
+        PARSER_V1 --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"]
+        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
+        EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
     subgraph TRIAGE_V1["2. Query Analysis & Triage"]
