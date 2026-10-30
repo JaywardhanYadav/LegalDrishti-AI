@@ -45,28 +45,6 @@ flowchart TD
         CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
         EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
-
-    subgraph TRIAGE_V1["2. Query Analysis & Triage"]
-        direction LR
-        QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
-    end
-
-    subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
-        direction LR
-        HYBRID_V1["Two-Stage Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
-        AGENT_WEB["Live Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
-    end
-
-    subgraph SYNTHESIS_V1["4. Grounded Context Synthesis"]
-        direction LR
-        PROMPT_V1["Prompt Assembly\n[Query + Statutory Chunks + Web Insights]"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"] --> ANS_V1["Generated Legal Answer"]
-    end
-
-    INGEST_V1 ==> RETRIEVE_V1
-    JEV_V1 -->|Route: Internal Law| HYBRID_V1
-    JEV_V1 -->|Route: Live Precedents| AGENT_WEB
-    TOP_INTERNAL --> PROMPT_V1
-    WEB_RESULTS --> PROMPT_V1
 ```
 
 ---
