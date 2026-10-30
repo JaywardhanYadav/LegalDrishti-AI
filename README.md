@@ -45,6 +45,11 @@ flowchart TD
         CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
         EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
+
+    subgraph TRIAGE_V1["2. Query Analysis & Triage"]
+        direction LR
+        QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
+    end
 ```
 
 ---
