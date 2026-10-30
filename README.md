@@ -32,64 +32,34 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 * **Live Web Search API Agent Track:** For queries requiring recent Supreme Court precedents or contemporary legal developments, a parallel API agent conducts live legal web searches across sources like Indian Kanoon, LiveLaw, and Bar & Bench.
 * **Grounded Context Synthesis:** Merges retrieved statutory provisions, client vault evidence, and web search insights into a single prompt for OpenAI GPT-4o to generate a comprehensive, grounded legal answer.
 
+#### A. Document Ingestion Pipeline
 ```mermaid
-flowchart TD
-    subgraph ROW1[" "]
-        direction LR
-        subgraph INGEST_V1["1. Document Ingestion & Storage"]
-            direction LR
-            DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
-            DOC_USER["User Case Files\n(FIRs, Plaints, Agreements, Memos)"]
-
-            DOC_STATUTES --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
-            DOC_USER --> PARSER_V1
-            PARSER_V1 --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"]
-            CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
-            EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
-        end
-
-        INGEST_V1 ~~~ TRIAGE_V1
-
-        subgraph TRIAGE_V1["2. Query Analysis & Triage"]
-            direction LR
-            QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
-        end
-    end
-
-    subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
-        direction LR
-
-        subgraph PIPELINE_INTERNAL["Track A: Two-Stage Hybrid Pipeline (Statutes & User Vault)"]
-            direction LR
-            HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP_INTERNAL["Top 5 Statutory & Case Chunks"]
-        end
-
-        PIPELINE_INTERNAL ~~~ PIPELINE_WEB
-
-        subgraph PIPELINE_WEB["Track B: Live Web Search API Agent"]
-            direction LR
-            AGENT_WEB["Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
-        end
-    end
-
-    ROW1 ~~~ SPACE_ROW1A[" "] ~~~ SPACE_ROW1B[" "] ~~~ RETRIEVE_V1
-    RETRIEVE_V1 ~~~ SPACE_ROW2A[" "] ~~~ SPACE_ROW2B[" "] ~~~ SYNTHESIS_V1
-
-    subgraph SYNTHESIS_V1["4. Grounded Context Synthesis"]
-        direction LR
-        PROMPT_V1["Grounded Prompt Assembly\n(Query + Top Chunks + Web Insights)"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"] --> ANS_V1["Generated Legal Answer"]
-    end
-
-    style ROW1 fill:none,stroke:none
-    style SPACE_ROW1A fill:none,stroke:none,color:transparent
-    style SPACE_ROW1B fill:none,stroke:none,color:transparent
-    style SPACE_ROW2A fill:none,stroke:none,color:transparent
-    style SPACE_ROW2B fill:none,stroke:none,color:transparent
+flowchart LR
+    A[28 Indian Bare Acts<br/>BNS, BNSS, BSA, CPC] --> B[Document Parser<br/>PyPDF / python-docx]
+    E[User Case Files<br/>FIRs, Plaints, Memos] --> B
+    B --> C[Recursive Splitter<br/>1000 chars, 200 overlap]
+    C --> D[OpenAI 1536-D<br/>text-embedding-3-small]
+    D --> STORE[(Weaviate DB<br/>GlobalStatuteChunk)]
 ```
 
-<div align="center">
-  <img src="docs/architecture/v1_architecture_diagram.png" alt="LegalDrishti AI V1 Architecture Diagram" width="100%" />
-</div>
+#### B. Query Runtime & Dual-Track Retrieval
+```mermaid
+flowchart TD
+    U([User Legal Query]) --> JEV{Jev System 1<br/>Decision Model}
+    
+    JEV -->|internal law| T1[Two-Stage Hybrid Search<br/>Dense + BM25, alpha=0.5]
+    JEV -->|live precedents| T2[Live Web Search Agent<br/>Tavily / Legal News]
+    
+    STORE[(Weaviate DB<br/>GlobalStatuteChunk)] --> T1
+    
+    T1 --> RR[FlashRank Cross-Encoder<br/>Top 5 Chunks]
+    T2 --> WEB[Live Precedents<br/>LiveLaw, Bar & Bench, Kanoon]
+    
+    RR --> SYN[Grounded Context Synthesis<br/>OpenAI GPT-4o]
+    WEB --> SYN
+    
+    SYN --> ANS([Generated Legal Answer])
+```
 
 ---
 
