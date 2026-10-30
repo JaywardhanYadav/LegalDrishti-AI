@@ -33,27 +33,28 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 * **Grounded Context Synthesis:** Merges retrieved statutory provisions, client vault evidence, and web search insights into a single prompt for OpenAI GPT-4o to generate a comprehensive, grounded legal answer.
 
 ```mermaid
-flowchart TB
-    subgraph INGEST_V1["1. Document Ingestion & Storage"]
+flowchart TD
+    subgraph ROW1[" "]
         direction LR
-        DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
-        DOC_USER["User Case Files\n(FIRs, Plaints, Agreements, Memos)"]
+        subgraph INGEST_V1["1. Document Ingestion & Storage"]
+            direction LR
+            DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
+            DOC_USER["User Case Files\n(FIRs, Plaints, Agreements, Memos)"]
 
-        DOC_STATUTES --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
-        DOC_USER --> PARSER_V1
-        PARSER_V1 --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"]
-        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
-        EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
+            DOC_STATUTES --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
+            DOC_USER --> PARSER_V1
+            PARSER_V1 --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"]
+            CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
+            EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
+        end
+
+        INGEST_V1 ~~~ TRIAGE_V1
+
+        subgraph TRIAGE_V1["2. Query Analysis & Triage"]
+            direction LR
+            QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
+        end
     end
-
-    INGEST_V1 ~~~ TRIAGE_V1
-
-    subgraph TRIAGE_V1["2. Query Analysis & Triage"]
-        direction LR
-        QUERY_V1["User Legal Query"] --> JEV_V1["Jev (System 1) Decision Model\n(TypeSafe AI Intent Triage)"]
-    end
-
-    INGEST_V1 ~~~ RETRIEVE_V1
 
     subgraph RETRIEVE_V1["3. Parallel Retrieval Tracks"]
         direction TB
@@ -68,6 +69,9 @@ flowchart TB
             AGENT_WEB["Web Search API Agent\n(Tavily / Search API)"] --> WEB_RESULTS["Live Precedents & Legal News\n(LiveLaw, Bar & Bench, Kanoon)"]
         end
     end
+
+    ROW1 ~~~ RETRIEVE_V1
+    style ROW1 fill:none,stroke:none
 ```
 
 ---
