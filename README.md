@@ -20,42 +20,43 @@ It seamlessly bridges historical Indian jurisprudence (IPC 1860, CrPC 1973, IEA 
 
 ## 🏛️ System Architecture
 
-### 1. Version 1 (V1) — Baseline Cloud Prototype
+### 1. Version(1) - LangChain Recursive Splitter + OpenAI text-embedding-3-small (Cloud Prototype)
 
 Version 1 was developed as the initial proof-of-concept pipeline relying on cloud APIs and standard document processing conventions:
 
 * **Document Ingestion:** Extracted text from Indian Bare Acts and client documents using standard PyPDF and docx parsers.
 * **Chunking Strategy:** Fixed-size sliding windows using LangChain's `RecursiveCharacterTextSplitter` (1000 characters with 200-character overlap). While functional for general prose, this approach frequently severed statutory provisions, cutting off essential provisos, explanations, and punishment sub-sections from their parent sections.
-* **Embedding Model:** Cloud-dependent vector generation using OpenAI's `text-embedding-3-small` (1536-dimensional dense vectors).
-* **Storage & Retrieval:** Chunks were indexed in Weaviate (`GlobalStatuteChunk`), queried via basic hybrid search ($\alpha=0.5$), and reranked using FlashRank.
+* **Bi-Encoder Dense Embedding:** Utilized OpenAI's `text-embedding-3-small` as a **cloud-dependent Bi-Encoder**, mapping queries and statutory passages independently into a shared 1536-dimensional dense vector space for initial high-recall candidate retrieval.
+* **Storage & Hybrid Search:** Chunks were indexed in Weaviate (`GlobalStatuteChunk`) and fetched via basic hybrid search combining dense bi-encoder cosine vectors and sparse BM25 keyword matching ($\alpha=0.5$).
+* **Cross-Encoder Reranker:** Integrated FlashRank (`ms-marco-MiniLM-L-12-v2`) as a neural **Cross-Encoder**, evaluating full token-level self-attention across `(query, passage)` pairs to eliminate false positives and rerank the Top 5 most authoritative chunks.
 * **Synthesis:** Single-pass prompt injection with OpenAI GPT-4o.
 
 ```mermaid
-flowchart TD
-    subgraph INGEST_V1["V1 Document Ingestion & Indexing"]
-        DOCS_V1["28 Indian Bare Acts & PDFs"] --> EXTRACT_V1["Text Extraction (PyPDF / docx)"]
-        EXTRACT_V1 --> CHUNK_V1["Recursive Character Splitter\n(1000 chars, 200 overlap)"]
-        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Cloud API)"]
+flowchart LR
+    subgraph INGEST_V1["1. Ingestion & Indexing"]
+        DOCS_V1["28 Indian Bare Acts & PDFs"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
+        PARSER_V1 --> CHUNK_V1["Recursive Character Splitter\n(1000 chars, 200 overlap)"]
+        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Cloud Bi-Encoder)"]
         EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
-    subgraph RETRIEVE_V1["V1 Hybrid Retrieval & Reranking"]
-        Q_V1["User Legal Query"] --> HYBRID_V1["Hybrid Search (alpha = 0.5)\nDense Vector + BM25"]
+    subgraph RETRIEVE_V1["2. Retrieval & Reranking"]
+        Q_V1["User Legal Query"] --> HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"]
         WEAVIATE_V1 --> HYBRID_V1
         HYBRID_V1 --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"]
-        RERANK_V1 --> TOP5_V1["Top 5 Retrieved Chunks"]
+        RERANK_V1 --> TOP5_V1["Top 5 Chunks"]
     end
 
-    subgraph GEN_V1["V1 Context Synthesis"]
-        TOP5_V1 --> PROMPT_V1["Standard Legal Prompt"]
+    subgraph GEN_V1["3. Synthesis"]
+        TOP5_V1 --> PROMPT_V1["Legal Prompt"]
         PROMPT_V1 --> LLM_V1["OpenAI GPT-4o"]
-        LLM_V1 --> ANS_V1["Generated Legal Advice"]
+        LLM_V1 --> ANS_V1["Generated Legal Answer"]
     end
 ```
 
 ---
 
-### 2. Version 2 (V2) — Production Sovereign Multi-Model Architecture
+### 2. Version(2) - Section-Aware Semantic Chunker + Fine-Tuned Octen-0.6B (Production Sovereign)
 
 Version 2 represents the production-grade sovereign AI platform re-engineered specifically for the nuances of Indian statutory law:
 
