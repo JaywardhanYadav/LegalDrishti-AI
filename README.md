@@ -33,7 +33,7 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 * **Grounded Context Synthesis:** Merges retrieved statutory provisions, client vault evidence, and web search insights into a single prompt for OpenAI GPT-4o to generate a comprehensive, grounded legal answer.
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph INGEST_V1["1. Document Ingestion & Storage"]
         direction LR
         DOC_STATUTES["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
@@ -45,6 +45,8 @@ flowchart TD
         CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"]
         EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
+
+    INGEST_V1 ~~~ TRIAGE_V1
 
     subgraph TRIAGE_V1["2. Query Analysis & Triage"]
         direction LR
