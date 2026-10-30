@@ -76,44 +76,37 @@ Version 2 represents the production-grade sovereign AI platform re-engineered sp
   3. **FlashRank Cross-Encoder:** Evaluates deep token-level cross-attention (`ms-marco-MiniLM-L-12-v2`) to surface the top 4–5 deduplicated, high-precision statutory excerpts.
 * **Dual-Stream Grounded Synthesis:** Decouples public governing statutes from private case evidence in a dual-stream prompt, enforcing strict citation grounding (Act, Section, Sub-section, Page number) with a zero-hallucination standard.
 
+#### A. Document Ingestion & Section-Aware Chunking Pipeline
+```mermaid
+flowchart LR
+    A[28 Indian Bare Acts<br/>BNS, BNSS, BSA, CPC] --> B[IBM Docling Parser<br/>AST & Layout Extraction]
+    E[Private Client Vault<br/>FIRs, Plaints, Memos] --> B
+    B --> C[Section-Aware Chunker<br/>Sticky Headers: Act > Chapter > Section]
+    C --> D[Fine-Tuned Octen-0.6B<br/>1024-D PyTorch CUDA]
+    D --> STORE[(Weaviate DB<br/>GlobalStatuteChunk_V2)]
+```
+
+#### B. Query Runtime & Dual-Stream RRF Retrieval
 ```mermaid
 flowchart TD
-    subgraph INGEST_V2["1. Sovereign Ingestion & Section-Aware Chunking"]
-        STATUTES_V2["28 Indian Bare Acts\n(BNS, BNSS, BSA, NI Act, CPC)"]
-        VAULT_V2["Private Client Case Vault\n(FIRs, Plaints, Contracts, Memos)"]
-
-        STATUTES_V2 --> DOCLING["IBM Docling Parser\n(AST & Layout Extraction)"]
-        VAULT_V2 --> DOCLING
-        
-        DOCLING --> CHUNKER_V2["Section-Aware Contextual Semantic Chunker\n(Sticky Headers: Act > Chapter > Section)"]
-        CHUNKER_V2 --> EMBED_V2["Local Fine-Tuned Octen-0.6B Engine\n(1024-D PyTorch CUDA Acceleration)"]
-        EMBED_V2 --> WEAVIATE_V2[("Weaviate Collection:\nGlobalStatuteChunk_V2")]
-    end
-
-    subgraph RETRIEVE_V2["2. Intent Routing & RRF Two-Stage Retrieval"]
-        QUERY_V2["User Legal Query"] --> ROUTER_V2["Multi-Pipeline Decision Router\n(STATUTE / VAULT / DUAL / DRAFT)"]
-        
-        ROUTER_V2 --> DENSE_V2["Dense Vector Search\n(Cosine Similarity)"]
-        ROUTER_V2 --> BM25_V2["Sparse Keyword Search\n(BM25 Okapi)"]
-        
-        DENSE_V2 --> WEAVIATE_V2
-        BM25_V2 --> WEAVIATE_V2
-        
-        WEAVIATE_V2 --> RRF_V2["Reciprocal Rank Fusion (RRF)\nCandidate Pool (40 Chunks)"]
-        RRF_V2 --> FLASHRANK_V2["FlashRank Cross-Encoder Reranker\n(ms-marco-MiniLM-L-12-v2)"]
-        FLASHRANK_V2 --> TOP_V2["Top 4-5 Precision Chunks\n(Filtered & Deduplicated)"]
-    end
-
-    subgraph GEN_V2["3. Dual-Stream Grounded Synthesis"]
-        TOP_V2 --> STREAM1_V2["Stream 1: Governing Statutory Mandate\n(Act, Section, Provisos)"]
-        VAULT_V2 -.-> STREAM2_V2["Stream 2: Client Case Evidence\n(Exhibits, Dates, FIR Allegations)"]
-        
-        STREAM1_V2 --> PROMPT_V2["Dual-Stream Grounded Prompt Engine\n(Zero Hallucination Standard)"]
-        STREAM2_V2 --> PROMPT_V2
-        
-        PROMPT_V2 --> SYNTHESIS_V2["Synthesis Engine\n(OpenAI GPT-4o / Groq Qwen-27B)"]
-        SYNTHESIS_V2 --> FINAL_V2["Authoritative Legal Verdict & Grounded Citations\n(Act, Section, Sub-section, Exact Page No.)"]
-    end
+    U([User Legal Query]) --> ROUTER{Multi-Pipeline<br/>Decision Router}
+    
+    ROUTER -->|statutes| S1[Dense Vector Search<br/>Cosine Similarity]
+    ROUTER -->|statutes| S2[Sparse Keyword Search<br/>BM25 Okapi]
+    ROUTER -->|client vault| V[Private Vault Search<br/>Filtered by Client ID]
+    
+    STORE[(Weaviate DB<br/>GlobalStatuteChunk_V2)] --> S1
+    STORE --> S2
+    
+    S1 --> RRF[Reciprocal Rank Fusion<br/>Candidate Pool of 40]
+    S2 --> RRF
+    
+    RRF --> RR[FlashRank Cross-Encoder<br/>Top 4-5 Precision Chunks]
+    
+    RR --> SYN[Dual-Stream Grounded Synthesis<br/>GPT-4o / Groq Qwen-27B]
+    V --> SYN
+    
+    SYN --> ANS([Authoritative Verdict & Citations<br/>Act, Section, Exact Page No.])
 ```
 
 ---
