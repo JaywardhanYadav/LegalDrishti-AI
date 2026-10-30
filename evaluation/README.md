@@ -104,15 +104,15 @@ Benchmarked over statutory queries on **NVIDIA RTX 4050 Laptop GPU (6 GB VRAM) +
 
 | Stage | Hardware | Avg. Latency (ms) | Share (%) |
 | :--- | :---: | :---: | :---: |
-| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 315.1 ms | 30.2% |
-| **2. BM25 Lexical Search** | CPU / RAM | 57.1 ms | 5.5% |
-| **3. RRF Fusion & Deduplication** | CPU | 0.1 ms | < 0.1% |
-| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 671.7 ms | 64.3% |
-| **Total Retrieval Pipeline** | **Local Hardware** | **1,044.0 ms** | **100.0%** |
+| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 268.4 ms | 31.9% |
+| **2. BM25 Lexical Search** | CPU / RAM | 46.2 ms | 5.5% |
+| **3. RRF Fusion & Deduplication** | CPU | 0.2 ms | < 0.1% |
+| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 526.8 ms | 62.6% |
+| **Total Retrieval Pipeline** | **Local Hardware** | **841.6 ms** | **100.0%** |
 
 > 🔍 **Engineering Trade-off & Optimization:**
-> * **The Trade-off:** The FlashRank neural cross-encoder adds **671.7 ms** (64.3% of local retrieval), increasing latency from 372.3 ms to 1,044.0 ms, but boosts Hit Rate @ 5 to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
-> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 200 ms.
+> * **The Trade-off:** The FlashRank neural cross-encoder adds **526.8 ms** (62.6% of local retrieval), taking latency from 314.8 ms to 841.6 ms, but boosts Hit Rate @ 5 from 82.4% to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
+> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 150 ms.
 
 ## 4. Embedding Model Fine-Tuning Triplet Benchmark
 
@@ -234,15 +234,15 @@ Benchmarked over statutory queries on **NVIDIA RTX 4050 Laptop GPU (6 GB VRAM) +
 
 | Stage | Hardware | Avg. Latency (ms) | Share (%) |
 | :--- | :---: | :---: | :---: |
-| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 315.1 ms | 30.2% |
-| **2. BM25 Lexical Search** | CPU / RAM | 57.1 ms | 5.5% |
-| **3. RRF Fusion & Deduplication** | CPU | 0.1 ms | < 0.1% |
-| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 671.7 ms | 64.3% |
-| **Total Retrieval Pipeline** | **Local Hardware** | **1,044.0 ms** | **100.0%** |
+| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 268.4 ms | 31.9% |
+| **2. BM25 Lexical Search** | CPU / RAM | 46.2 ms | 5.5% |
+| **3. RRF Fusion & Deduplication** | CPU | 0.2 ms | < 0.1% |
+| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 526.8 ms | 62.6% |
+| **Total Retrieval Pipeline** | **Local Hardware** | **841.6 ms** | **100.0%** |
 
 > 🔍 **Engineering Trade-off & Optimization:**
-> * **The Trade-off:** The FlashRank neural cross-encoder adds **671.7 ms** (64.3% of local retrieval), increasing latency from 372.3 ms to 1,044.0 ms, but boosts Hit Rate @ 5 to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
-> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 200 ms.
+> * **The Trade-off:** The FlashRank neural cross-encoder adds **526.8 ms** (62.6% of local retrieval), taking latency from 314.8 ms to 841.6 ms, but boosts Hit Rate @ 5 from 82.4% to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
+> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 150 ms.
 
 ## 4. Embedding Model Fine-Tuning Triplet Benchmark
 Evaluates contrastive boundary separation on 100 anchor-positive-negative triplets:
