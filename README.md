@@ -72,8 +72,8 @@ flowchart TD
         end
     end
 
-    ROW1 ~~~ SPACE_ROW[" "] ~~~ RETRIEVE_V1
-    RETRIEVE_V1 ~~~ SPACE_ROW2[" "] ~~~ SYNTHESIS_V1
+    ROW1 ~~~ SPACE_ROW1A[" "] ~~~ SPACE_ROW1B[" "] ~~~ RETRIEVE_V1
+    RETRIEVE_V1 ~~~ SPACE_ROW2A[" "] ~~~ SPACE_ROW2B[" "] ~~~ SYNTHESIS_V1
 
     subgraph SYNTHESIS_V1["4. Grounded Context Synthesis"]
         direction LR
@@ -81,9 +81,15 @@ flowchart TD
     end
 
     style ROW1 fill:none,stroke:none
-    style SPACE_ROW fill:none,stroke:none,color:transparent
-    style SPACE_ROW2 fill:none,stroke:none,color:transparent
+    style SPACE_ROW1A fill:none,stroke:none,color:transparent
+    style SPACE_ROW1B fill:none,stroke:none,color:transparent
+    style SPACE_ROW2A fill:none,stroke:none,color:transparent
+    style SPACE_ROW2B fill:none,stroke:none,color:transparent
 ```
+
+<div align="center">
+  <img src="docs/architecture/v1_architecture_diagram.png" alt="LegalDrishti AI V1 Architecture Diagram" width="100%" />
+</div>
 
 ---
 
