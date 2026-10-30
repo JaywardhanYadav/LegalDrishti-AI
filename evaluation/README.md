@@ -98,6 +98,22 @@ To scientifically measure the isolated contributions of **Chunking Strategy** an
 
 ---
 
+### ⏱️ Retrieval Pipeline Stage Profiling (Version 2)
+
+Benchmarked over statutory queries on **NVIDIA RTX 4050 Laptop GPU (6 GB VRAM) + Intel Core 5 210H + 24 GB RAM**:
+
+| Stage | Hardware | Avg. Latency (ms) | Share (%) |
+| :--- | :---: | :---: | :---: |
+| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 315.1 ms | 30.2% |
+| **2. BM25 Lexical Search** | CPU / RAM | 57.1 ms | 5.5% |
+| **3. RRF Fusion & Deduplication** | CPU | 0.1 ms | < 0.1% |
+| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 671.7 ms | 64.3% |
+| **Total Retrieval Pipeline** | **Local Hardware** | **1,044.0 ms** | **100.0%** |
+
+> 🔍 **Engineering Trade-off & Optimization:**
+> * **The Trade-off:** The FlashRank neural cross-encoder adds **671.7 ms** (64.3% of local retrieval), increasing latency from 372.3 ms to 1,044.0 ms, but boosts Hit Rate @ 5 to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
+> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 200 ms.
+
 ## 4. Embedding Model Fine-Tuning Triplet Benchmark
 
 Evaluated on **100 Anchor-Positive-Hard Negative statutory triplets** (`evaluation/evaluate_embedding_triplets.py`) testing whether the fine-tuned model correctly projects related legal provisions close together while cleanly pushing apart subtly different legal provisions.
@@ -212,7 +228,23 @@ Profiles individual stage latencies (Dense vector search, BM25, RRF fusion, Flas
 & ".venv-gpu\Scripts\python.exe" evaluation/evaluate_retrieval_profiling.py --samples 15
 ```
 
-### 4. Embedding Model Fine-Tuning Triplet Benchmark
+#### ⏱️ Retrieval Pipeline Stage Profiling (Version 2)
+
+Benchmarked over statutory queries on **NVIDIA RTX 4050 Laptop GPU (6 GB VRAM) + Intel Core 5 210H + 24 GB RAM**:
+
+| Stage | Hardware | Avg. Latency (ms) | Share (%) |
+| :--- | :---: | :---: | :---: |
+| **1. Dense Search** (Fine-Tuned Octen-0.6B) | GPU (RTX 4050) | 315.1 ms | 30.2% |
+| **2. BM25 Lexical Search** | CPU / RAM | 57.1 ms | 5.5% |
+| **3. RRF Fusion & Deduplication** | CPU | 0.1 ms | < 0.1% |
+| **4. FlashRank Cross-Encoder Reranker** (ms-marco-MiniLM-L-12-v2) | GPU (RTX 4050) | 671.7 ms | 64.3% |
+| **Total Retrieval Pipeline** | **Local Hardware** | **1,044.0 ms** | **100.0%** |
+
+> 🔍 **Engineering Trade-off & Optimization:**
+> * **The Trade-off:** The FlashRank neural cross-encoder adds **671.7 ms** (64.3% of local retrieval), increasing latency from 372.3 ms to 1,044.0 ms, but boosts Hit Rate @ 5 to **99.4%** — an indispensable trade-off where citing an incorrect legal statute is unacceptable in professional law practice.
+> * **Roadmap:** Converting the cross-encoder reranker to **ONNX Runtime with INT8 quantization** is our top priority to compress model footprint and reduce reranking latency under 200 ms.
+
+## 4. Embedding Model Fine-Tuning Triplet Benchmark
 Evaluates contrastive boundary separation on 100 anchor-positive-negative triplets:
 ```powershell
 & ".venv-gpu\Scripts\python.exe" evaluation/evaluate_embedding_triplets.py
