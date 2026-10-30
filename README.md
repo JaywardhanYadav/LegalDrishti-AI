@@ -113,7 +113,7 @@ flowchart TD
 
 ## ⚖️ Evaluation
 
-To eliminate guesswork and validate LegalDrishti AI against empirical standards, the retrieval and generation pipelines were evaluated across a **75-scenario Indian statutory golden dataset** using **Groq Cloud (`qwen/qwen3.8-27b`) as an impartial LLM Judge** running at `temperature=0.0`:
+To test how accurately LegalDrishti AI finds the law and answers questions, we tested it on **75 real-world Indian legal test questions**. We compared 4 different system setups and used an AI judge (`qwen-27b`) to grade the accuracy of every answer:
 
 ### 🏆 4-Way Ablation Benchmark Results
 
