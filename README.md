@@ -72,8 +72,9 @@ flowchart TD
         end
     end
 
-    ROW1 ~~~ RETRIEVE_V1
+    ROW1 ~~~ SPACE_ROW[" "] ~~~ RETRIEVE_V1
     style ROW1 fill:none,stroke:none
+    style SPACE_ROW fill:none,stroke:none,color:transparent
 ```
 
 ---
