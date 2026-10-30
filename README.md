@@ -35,27 +35,21 @@ Version 1 was developed as the initial proof-of-concept pipeline relying on clou
 flowchart TD
     subgraph INGEST_V1["1. Document Ingestion & Storage"]
         direction LR
-        DOCS_V1["28 Indian Bare Acts & PDFs"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"]
-        PARSER_V1 --> CHUNK_V1["Recursive Character Splitter\n(1000 chars, 200 overlap)"]
-        CHUNK_V1 --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Cloud Bi-Encoder)"]
-        EMBED_V1 --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
+        DOCS_V1["28 Indian Bare Acts & PDFs"] --> PARSER_V1["Document Parser\n(PyPDF / python-docx)"] --> CHUNK_V1["Recursive Splitter\n(1000 chars, 200 overlap)"] --> EMBED_V1["OpenAI text-embedding-3-small\n(1536-D Bi-Encoder)"] --> WEAVIATE_V1[("Weaviate Collection:\nGlobalStatuteChunk")]
     end
 
     subgraph RETRIEVE_V1["2. Two-Stage Hybrid Retrieval & Reranking"]
         direction LR
-        Q_V1["User Legal Query"] --> HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"]
-        HYBRID_V1 --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"]
-        RERANK_V1 --> TOP5_V1["Top 5 High-Precision Chunks"]
+        Q_V1["User Legal Query"] --> HYBRID_V1["Bi-Encoder Hybrid Search\n(Dense + BM25, alpha=0.5)"] --> RERANK_V1["FlashRank Cross-Encoder\n(ms-marco-MiniLM-L-12-v2)"] --> TOP5_V1["Top 5 High-Precision Chunks"]
     end
 
     subgraph GEN_V1["3. Grounded Context Synthesis"]
         direction LR
-        PROMPT_V1["Standard Legal Prompt\n[User Query + Top 5 Context]"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"]
-        LLM_V1 --> ANS_V1["Generated Legal Answer"]
+        PROMPT_V1["Standard Legal Prompt\n[User Query + Top 5 Context]"] --> LLM_V1["OpenAI LLM Engine\n(GPT-4o)"] --> ANS_V1["Generated Legal Answer"]
     end
 
-    WEAVIATE_V1 --> HYBRID_V1
-    TOP5_V1 --> PROMPT_V1
+    INGEST_V1 ==> RETRIEVE_V1
+    RETRIEVE_V1 ==> GEN_V1
 ```
 
 ---
