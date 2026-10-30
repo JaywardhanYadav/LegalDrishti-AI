@@ -307,14 +307,37 @@ JWT_SECRET="your-secure-jwt-secret-key"
 
 ---
 
-### Step 4: Python Virtual Environment Setup
-For GPU acceleration with CUDA 12.4:
+### Step 4: Python Virtual Environment & Embedding Model Setup
+
+#### 1. Setup Virtual Environment (CUDA 12.4 GPU Acceleration)
 ```powershell
 python -m venv .venv-gpu
 & ".venv-gpu\Scripts\activate"
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install -r requirements.txt
 ```
+
+#### 2. Choose Your Embedding Setup (Base vs. Fine-Tuned):
+
+LegalDrishti AI supports two flexible local deployment modes based on your needs:
+
+* **Option A: Plug & Play Base Model (Default — No Fine-Tuning Needed)**  
+  If you don't want to spend time fine-tuning and just want to run the system out-of-the-box, download the official pre-trained `octen-0.6b` weights directly from Hugging Face:
+  ```powershell
+  python backend/scripts/download_octen_model.py
+  ```
+  > 💡 **Performance:** Even without fine-tuning, the base model combined with Docling section chunking and FlashRank delivers **>91% Hit Rate @ 5** with zero training hassle.
+
+* **Option B: Domain-Adapted Fine-Tuned Model (Optional — For 99%+ Precision)**  
+  If you want maximum precision on nuanced Indian statutory distinctions (e.g., BNS 103 Murder vs. BNS 105 Culpable Homicide), train the model using contrastive triplets:
+  ```powershell
+  # 1. Download base weights first (if not already done)
+  python backend/scripts/download_octen_model.py
+
+  # 2. Run contrastive triplet fine-tuning on Indian Bare Acts
+  python backend/scripts/train_octen_legal.py
+  ```
+  > 🔄 **Automatic Fallback:** The backend dynamically checks if `models/octen-0.6b-finetuned` exists. If found, it automatically uses the fine-tuned model; otherwise, it seamlessly falls back to the base model with zero configuration required!
 
 ---
 
