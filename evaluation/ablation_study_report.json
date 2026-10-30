@@ -1,47 +1,47 @@
 {
-  "timestamp": "2026-10-29 23:42:20",
-  "scenarios_evaluated": 1,
+  "timestamp": "2026-10-30 13:40:36",
+  "scenarios_evaluated": 5,
   "judge_model": "qwen/qwen3.8-27b",
   "comparative_metrics": {
     "V2_Production": {
       "collection": "GlobalStatuteChunk_V2",
-      "hit_rate_at_5": 1.0,
-      "mrr_at_5": 1.0,
-      "avg_latency_ms": 5912.75,
-      "avg_faithfulness": 0.8,
-      "avg_answer_relevancy": 0.6,
-      "avg_contextual_precision": 0.5,
-      "avg_contextual_recall": 0.5
+      "hit_rate_at_5": 0.8,
+      "mrr_at_5": 0.8,
+      "avg_latency_ms": 3663.77,
+      "avg_faithfulness": 0.56,
+      "avg_answer_relevancy": 0.51,
+      "avg_contextual_precision": 0.51,
+      "avg_contextual_recall": 0.48
     },
     "Hybrid_Recursive_FT": {
       "collection": "Recursive_FineTune_Model",
-      "hit_rate_at_5": 1.0,
-      "mrr_at_5": 1.0,
-      "avg_latency_ms": 2156.51,
-      "avg_faithfulness": 0.8,
-      "avg_answer_relevancy": 0.4,
-      "avg_contextual_precision": 0.5,
-      "avg_contextual_recall": 0.3
+      "hit_rate_at_5": 0.8,
+      "mrr_at_5": 0.8,
+      "avg_latency_ms": 1798.72,
+      "avg_faithfulness": 0.71,
+      "avg_answer_relevancy": 0.6,
+      "avg_contextual_precision": 0.57,
+      "avg_contextual_recall": 0.58
     },
     "Hybrid_Recursive_Base": {
       "collection": "Recursive_Base_Octen",
-      "hit_rate_at_5": 1.0,
-      "mrr_at_5": 1.0,
-      "avg_latency_ms": 3387.74,
-      "avg_faithfulness": 0.8,
-      "avg_answer_relevancy": 0.4,
-      "avg_contextual_precision": 0.9,
-      "avg_contextual_recall": 0.3
+      "hit_rate_at_5": 0.8,
+      "mrr_at_5": 0.8,
+      "avg_latency_ms": 1776.45,
+      "avg_faithfulness": 0.68,
+      "avg_answer_relevancy": 0.5,
+      "avg_contextual_precision": 0.65,
+      "avg_contextual_recall": 0.44
     },
     "V1_Baseline": {
       "collection": "GlobalStatuteChunk",
-      "hit_rate_at_5": 1.0,
-      "mrr_at_5": 1.0,
-      "avg_latency_ms": 5023.05,
-      "avg_faithfulness": 0.95,
-      "avg_answer_relevancy": 0.9,
-      "avg_contextual_precision": 0.85,
-      "avg_contextual_recall": 0.8
+      "hit_rate_at_5": 0.4,
+      "mrr_at_5": 0.3,
+      "avg_latency_ms": 3993.7,
+      "avg_faithfulness": 0.75,
+      "avg_answer_relevancy": 0.7,
+      "avg_contextual_precision": 0.67,
+      "avg_contextual_recall": 0.72
     }
   }
 }
