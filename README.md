@@ -55,7 +55,7 @@ flowchart TD
     T1 --> RR[FlashRank Cross-Encoder<br/>Top 5 Chunks]
     T2 --> WEB[Live Precedents<br/>LiveLaw, Bar & Bench, Kanoon]
     
-    RR --> SYN[Grounded Context Synthesis<br/>OpenAI GPT-4o]
+    RR --> SYN[Grounded Context Synthesis<br/>System 2 Reasoning: OpenAI GPT-4o]
     WEB --> SYN
     
     SYN --> ANS([Generated Legal Answer])
@@ -63,18 +63,18 @@ flowchart TD
 
 ---
 
-### 2. Version(2) - Section-Aware Semantic Chunker + Fine-Tuned Octen-0.6B (Production Sovereign)
+### 2. Version(2) - Section-Aware Semantic Chunker + Fine-Tuned Octen-0.6B
 
-Version 2 represents the production-grade sovereign AI platform re-engineered specifically for the nuances of Indian statutory law:
+Version 2 represents the sovereign AI platform re-engineered specifically for the nuances of Indian statutory law:
 
 * **Structured AST Extraction:** Ingests complex legal PDFs through **IBM Docling**, capturing tables, headings, and document layout into structured markdown.
 * **Section-Aware Contextual Semantic Chunking:** Replaces blind character slicing with legal hierarchy boundary detection. Injects **sticky breadcrumb headers** (`[Act > Chapter > Section > Heading]`), guaranteeing that every statutory provision, proviso, and explanation remains unified within a single coherent chunk.
 * **Local Fine-Tuned Embedding Engine:** Runs a domain-adapted `octen-0.6b-finetuned` (1024-D) embedding model locally on **PyTorch CUDA**, completely removing cloud API latency, recurring per-token costs, and data exfiltration risks.
 * **Two-Stage Multi-Pipeline Hybrid Retrieval:**
-  1. **Decision Router:** Analyzes query intent to dispatch requests across `STATUTE_ONLY`, `VAULT_ONLY`, `DUAL_STREAM`, or `DRAFT_DOCUMENT`.
+  1. **Jev (System 1) Decision Router:** TypeSafe AI's Jev model evaluates legal query intent to dynamically dispatch requests across `STATUTE_ONLY`, `VAULT_ONLY`, `DUAL_STREAM`, or `DRAFT_DOCUMENT`.
   2. **Reciprocal Rank Fusion (RRF):** Fuses Dense Vector Search and Sparse BM25 Okapi into a unified candidate pool of 40 chunks.
   3. **FlashRank Cross-Encoder:** Evaluates deep token-level cross-attention (`ms-marco-MiniLM-L-12-v2`) to surface the top 4–5 deduplicated, high-precision statutory excerpts.
-* **Dual-Stream Grounded Synthesis:** Decouples public governing statutes from private case evidence in a dual-stream prompt, enforcing strict citation grounding (Act, Section, Sub-section, Page number) with a zero-hallucination standard.
+* **Dual-Stream Grounded Synthesis:** Decouples public governing statutes from private case evidence in a dual-stream prompt, evaluated by a **System 2 Reasoning LLM** enforcing strict citation grounding (Act, Section, Sub-section, Page number) with a zero-hallucination standard.
 
 #### A. Document Ingestion & Section-Aware Chunking Pipeline
 ```mermaid
@@ -89,7 +89,7 @@ flowchart LR
 #### B. Query Runtime & Dual-Stream RRF Retrieval
 ```mermaid
 flowchart TD
-    U([User Legal Query]) --> ROUTER{Multi-Pipeline<br/>Decision Router}
+    U([User Legal Query]) --> ROUTER{Jev System 1<br/>Decision Router}
     
     ROUTER -->|statutes| S1[Dense Vector Search<br/>Cosine Similarity]
     ROUTER -->|statutes| S2[Sparse Keyword Search<br/>BM25 Okapi]
@@ -103,7 +103,7 @@ flowchart TD
     
     RRF --> RR[FlashRank Cross-Encoder<br/>Top 4-5 Precision Chunks]
     
-    RR --> SYN[Dual-Stream Grounded Synthesis<br/>GPT-4o / Groq Qwen-27B]
+    RR --> SYN[Dual-Stream Grounded Synthesis<br/>System 2 Reasoning: GPT-4o / Qwen-27B]
     V --> SYN
     
     SYN --> ANS([Authoritative Verdict & Citations<br/>Act, Section, Exact Page No.])
